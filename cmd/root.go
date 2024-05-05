@@ -6,26 +6,29 @@ package cmd
 import (
 	"os"
 
-	"github.com/spf13/cobra"
-
 	"github.com/common-nighthawk/go-figure"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "cloud-cli",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Cloud cli orchestrator",
+	Long: `Cloud cli orchestrator is a command line tool that allows the orchestration
+of virtual machine topologies inside a private cloud context`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
-		myFigure := figure.NewFigure("CLOUD CLI", "", true)
+		myFigure := figure.NewFigure("PUCP Private Cloud Orchestrator", "doom", true)
 		myFigure.Print()
+		if len(args) == 0 {
+			err := cmd.Help()
+			if err != nil {
+				os.Exit(1)
+			}
+			os.Exit(0)
+		}
 	},
 }
 
@@ -38,7 +41,21 @@ func Execute() {
 	}
 }
 
+// Function to setup initial configuration
+func initConfig() {
+	home, err := os.UserHomeDir()
+	cobra.CheckErr(err)
+	// Check if the YAML file exists
+	if _, err := os.Stat(home + "/.cloud-cli.yaml"); err == nil {
+		// YAML file exists, assume user is authenticated
+		viper.AddConfigPath(home)
+		viper.SetConfigType("yaml")
+		viper.SetConfigName(".cloud-cli")
+	}
+}
+
 func init() {
+	cobra.OnInitialize(initConfig)
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
@@ -47,5 +64,6 @@ func init() {
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.CompletionOptions.HiddenDefaultCmd = true
 }
