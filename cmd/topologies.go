@@ -24,7 +24,11 @@ var topologiesCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		if m, ok := m.(model); ok && m.choices[m.cursor] != "" {
-			fmt.Printf("\n---\nYou chose %s!\n", m.choices[m.cursor])
+			if m.quit {
+				fmt.Printf("\n---\nQuitting!\n")
+			} else {
+				fmt.Printf("\n---\nYou chose %s!\n", m.choices[m.cursor])
+			}
 		}
 	},
 }
@@ -33,12 +37,12 @@ type model struct {
 	choices  []string
 	cursor   int
 	selected map[int]struct{}
+	quit     bool
 }
 
 func initialModel() model {
 	return model{
-		choices: []string{"Create topology", "List topologies", "Edit topology", "Delete topoly"},
-
+		choices:  []string{"Create topology", "List topologies", "Edit topology", "Delete topoly"},
 		selected: make(map[int]struct{}),
 	}
 }
@@ -58,8 +62,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// These keys should exit the program.
 		case "ctrl+c", "q", "esc":
+			m.quit = true
 			return m, tea.Quit
-
 		// The "up" and "k" keys move the cursor up
 		case "up", "k":
 			if m.cursor > 0 {
