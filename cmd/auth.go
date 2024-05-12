@@ -3,7 +3,10 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"syscall"
 
@@ -15,9 +18,10 @@ import (
 )
 
 type User struct {
-	Username string `yaml:"username"`
-	Password string `yaml:"password"`
-	Role     string `yaml:"role"`
+	ID       string `yaml:"id" json:"_id"`
+	Username string `yaml:"username" json:"username"`
+	Role     string `yaml:"role" json:"role"`
+	Token    string `yaml:"token" json:"token"`
 }
 
 func PasswordPrompt(label string) string {
@@ -32,6 +36,49 @@ func PasswordPrompt(label string) string {
 	}
 	fmt.Println()
 	return s
+}
+
+func (user User) login(username, password string) {
+	authData := map[string]string{
+		"username": username,
+		"password": password,
+	}
+
+	jsonData, _ := json.Marshal(authData)
+	resp, err := http.Post("http://localhost:6969/auth/login", "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		fmt.Println("Error in authentication", err)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("Unexpected status code: %d", resp.StatusCode)
+		return
+	}
+
+	err = json.NewDecoder(resp.Body).Decode(&user)
+	if err != nil {
+		fmt.Printf("Error decoding response body: %v", err)
+		return
+	}
+}
+
+func logout(username string) {
+	authData := map[string]string{
+		"username": username,
+	}
+
+	jsonData, _ := json.Marshal(authData)
+	resp, err := http.Post("http://localhost:6969/auth/logout", "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		fmt.Println("Error in authentication", err)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("Unexpected status code: %d", resp.StatusCode)
+		return
+	}
 }
 
 // authCmd represents the auth command
@@ -67,15 +114,12 @@ and usage of using your command.`,
 			if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 				// Config file not found; ignore error if desired
 				var username, password string
+				var user User
 				fmt.Printf(">Enter username: ")
 				fmt.Scanf("%s\n", &username)
 				password = PasswordPrompt(">Enter password: ")
+				user.login(username, password)
 
-				user := User{
-					Username: username,
-					Password: password,
-					Role:     "administrator",
-				}
 				// Write user's credentials to YAML file
 				yamlData, err := yaml.Marshal(&user)
 				if err != nil {
@@ -99,6 +143,8 @@ and usage of using your command.`,
 				fmt.Println(">User logged in successfully.")
 			} else {
 				// Config file was found but another error was produced
+				fmt.Println(">Configurations loaded but other error happened")
+				return
 			}
 		} else {
 			username := viper.GetString("username")
@@ -118,20 +164,23 @@ and usage of using your command.`,
 		cobra.CheckErr(err)
 		filePath := home + "/.cloud-cli.yaml"
 
-		// Check if the file exists
-		if _, err := os.Stat(filePath); err == nil {
+		if err := viper.ReadInConfig(); err != nil {
+			if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+				fmt.Println(">No user authenticated")
+			} else {
+				// Config file was found but another error was produced
+				fmt.Println(">Configurations loaded but other error happened")
+				return
+			}
+		} else {
+			username := viper.GetString("username")
+			logout(username)
 			// File exists, attempt to remove it
 			if err := os.Remove(filePath); err != nil {
 				fmt.Println(">Error deleting file:", err)
 				return
 			}
 			fmt.Println(">User logged out successfully.")
-		} else if os.IsNotExist(err) {
-			// File does not exist, print a message
-			fmt.Println(">No user authenticated")
-		} else {
-			// Error occurred while checking file status
-			fmt.Println(">Error checking file status:", err)
 		}
 	},
 }
