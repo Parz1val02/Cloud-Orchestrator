@@ -12,9 +12,9 @@ import (
 )
 
 type User struct {
-	Username string `yaml: "username"`
-	Password string `yaml: "password"`
-	Role     string `yaml: "role"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+	Role     string `yaml:"role"`
 }
 
 // authCmd represents the auth command
@@ -36,10 +36,10 @@ and usage of using your command.`,
 			if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 				// Config file not found; ignore error if desired
 				var username, password string
-				fmt.Print(">Enter username: ")
-				fmt.Scanf("%s", &username)
-				fmt.Print(">Enter password: ")
-				fmt.Scanf("%s", &password)
+				fmt.Printf(">Enter username: ")
+				fmt.Scanf("%s\n", &username)
+				fmt.Printf(">Enter password: ")
+				fmt.Scanf("%s\n", &password)
 
 				user := User{
 					Username: username,
