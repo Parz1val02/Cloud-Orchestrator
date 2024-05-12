@@ -4,6 +4,7 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/common-nighthawk/go-figure"
@@ -20,9 +21,10 @@ of virtual machine topologies inside a private cloud context`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
-		myFigure := figure.NewFigure("PUCP Private Cloud Orchestrator", "doom", true)
-		myFigure.Print()
 		if len(args) == 0 {
+			myFigure := figure.NewFigure("PUCP Private Cloud Orchestrator", "doom", true)
+			myFigure.Print()
+			fmt.Println()
 			err := cmd.Help()
 			if err != nil {
 				os.Exit(1)

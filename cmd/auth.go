@@ -5,9 +5,12 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"syscall"
 
+	"github.com/common-nighthawk/go-figure"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/term"
 	"gopkg.in/yaml.v3"
 )
 
@@ -17,11 +20,39 @@ type User struct {
 	Role     string `yaml:"role"`
 }
 
+func PasswordPrompt(label string) string {
+	var s string
+	for {
+		fmt.Fprint(os.Stderr, label)
+		b, _ := term.ReadPassword(int(syscall.Stdin))
+		s = string(b)
+		if s != "" {
+			break
+		}
+	}
+	fmt.Println()
+	return s
+}
+
 // authCmd represents the auth command
 var authCmd = &cobra.Command{
 	Use:   "auth",
 	Short: "Manage credentials for PUCP private cloud",
 	Long:  `Manage authentication crentials for the PUCP private cloud platform`,
+	// Uncomment the following line if your bare application
+	// has an action associated with it:
+	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) == 0 {
+			myFigure := figure.NewFigure("PUCP Private Cloud Orchestrator", "doom", true)
+			myFigure.Print()
+			fmt.Println()
+			err := cmd.Help()
+			if err != nil {
+				os.Exit(1)
+			}
+			os.Exit(0)
+		}
+	},
 }
 
 // loginCmd
@@ -38,8 +69,7 @@ and usage of using your command.`,
 				var username, password string
 				fmt.Printf(">Enter username: ")
 				fmt.Scanf("%s\n", &username)
-				fmt.Printf(">Enter password: ")
-				fmt.Scanf("%s\n", &password)
+				password = PasswordPrompt(">Enter password: ")
 
 				user := User{
 					Username: username,
@@ -49,21 +79,21 @@ and usage of using your command.`,
 				// Write user's credentials to YAML file
 				yamlData, err := yaml.Marshal(&user)
 				if err != nil {
-					fmt.Println(">Error marshalling struct to YAML:", err)
+					fmt.Println(">Error marshalling struct to YAML", err)
 					return
 				}
 				home, err := os.UserHomeDir()
 				cobra.CheckErr(err)
 				file, err := os.Create(home + "/.cloud-cli.yaml")
 				if err != nil {
-					fmt.Println(">Error creating file:", err)
+					fmt.Println(">Error creating file", err)
 					return
 				}
 				defer file.Close()
 
 				_, err = file.Write(yamlData)
 				if err != nil {
-					fmt.Println(">Error writing to file:", err)
+					fmt.Println(">Error writing to file", err)
 					return
 				}
 				fmt.Println(">User logged in successfully.")

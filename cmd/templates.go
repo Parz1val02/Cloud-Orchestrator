@@ -9,15 +9,20 @@ import (
 
 	configs "github.com/Parz1val02/cloud-cli/configs"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/common-nighthawk/go-figure"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // topologiesCmd represents the topologies command
-var topologiesCmd = &cobra.Command{
-	Use:   "topologies",
-	Short: "Manage CRUD operations related to topologies",
-	Long:  `Manage CRUD operations to topologies`,
+var templatesCmd = &cobra.Command{
+	Use:   "templates",
+	Short: "Manage CRUD operations related to templates",
+	Long:  `Manage CRUD operations to templates`,
 	Run: func(cmd *cobra.Command, args []string) {
+		myFigure := figure.NewFigure("PUCP Private Cloud Orchestrator", "doom", true)
+		myFigure.Print()
+		fmt.Println()
 		p := tea.NewProgram(initialModelTopologies())
 		m, err := p.Run()
 		if err != nil {
@@ -36,14 +41,17 @@ var topologiesCmd = &cobra.Command{
 
 func initialModelTopologies() configs.Model {
 	return configs.Model{
-		Choices:  []string{"Create topology", "List topologies", "Edit topology", "Delete topoly"},
+		Choices:  []string{"List templates", "List template by id", "Create template", "Edit template", "Delete template", "Graph template", "Import template", "Export template"},
 		Selected: make(map[int]struct{}),
 	}
 }
 
 func init() {
-	rootCmd.AddCommand(topologiesCmd)
-
+	initConfig()
+	err := viper.ReadInConfig()
+	if err == nil {
+		rootCmd.AddCommand(templatesCmd)
+	}
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command

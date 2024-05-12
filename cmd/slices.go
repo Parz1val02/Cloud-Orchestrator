@@ -5,11 +5,12 @@ package cmd
 
 import (
 	"fmt"
-    "os"
+	"os"
 
 	configs "github.com/Parz1val02/cloud-cli/configs"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // slicesCmd represents the slices command
@@ -42,7 +43,11 @@ func initialModelSlices() configs.Model {
 }
 
 func init() {
-	rootCmd.AddCommand(slicesCmd)
+	initConfig()
+	err := viper.ReadInConfig()
+	if err == nil {
+		rootCmd.AddCommand(slicesCmd)
+	}
 
 	// Here you will define your flags and configuration settings.
 
