@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"syscall"
+	"time"
 
 	"github.com/common-nighthawk/go-figure"
 	"github.com/spf13/cobra"
@@ -18,10 +19,12 @@ import (
 )
 
 type User struct {
-	ID       string `yaml:"id" json:"_id"`
-	Username string `yaml:"username" json:"username"`
-	Role     string `yaml:"role" json:"role"`
-	Token    string `yaml:"token" json:"token"`
+	ID        string    `yaml:"id" json:"ID"`
+	Username  string    `yaml:"username" json:"Username"`
+	Password  string    `yaml:"password" json:"Password"`
+	Role      string    `yaml:"role" json:"Role"`
+	Token     string    `yaml:"token" json:"Token"`
+	LastLogin time.Time `yaml:"last_login" json:"LastLogin"`
 }
 
 func PasswordPrompt(label string) string {
@@ -38,29 +41,34 @@ func PasswordPrompt(label string) string {
 	return s
 }
 
-func (user User) login(username, password string) {
+func login(username, password string) (User, error) {
 	authData := map[string]string{
 		"username": username,
 		"password": password,
 	}
 
 	jsonData, _ := json.Marshal(authData)
-	resp, err := http.Post("http://localhost:6969/auth/login", "application/json", bytes.NewBuffer(jsonData))
+	resp, err := http.Post("http://localhost:8080/login", "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		fmt.Println("Error in authentication", err)
 		os.Exit(1)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("Unexpected status code: %d", resp.StatusCode)
-		return
+	var data struct {
+		User User `json:"user"`
 	}
 
-	err = json.NewDecoder(resp.Body).Decode(&user)
-	if err != nil {
-		fmt.Printf("Error decoding response body: %v", err)
-		return
+	var user User
+	if resp.StatusCode != http.StatusOK {
+		err = fmt.Errorf("Unexpected status code: %d", resp.StatusCode)
+		return user, err
 	}
+	err = json.NewDecoder(resp.Body).Decode(&data)
+	if err != nil {
+		err = fmt.Errorf("Error decoding response body: %v", err)
+		return user, err
+	}
+	return data.User, nil
 }
 
 func logout(username string) {
@@ -69,7 +77,7 @@ func logout(username string) {
 	}
 
 	jsonData, _ := json.Marshal(authData)
-	resp, err := http.Post("http://localhost:6969/auth/logout", "application/json", bytes.NewBuffer(jsonData))
+	resp, err := http.Post("http://localhost:8080/auth/logout", "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		fmt.Println("Error in authentication", err)
 		os.Exit(1)
@@ -113,12 +121,15 @@ and usage of using your command.`,
 		if err := viper.ReadInConfig(); err != nil {
 			if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 				// Config file not found; ignore error if desired
-				var username, password string
+				var username string
 				var user User
 				fmt.Printf(">Enter username: ")
 				fmt.Scanf("%s\n", &username)
-				password = PasswordPrompt(">Enter password: ")
-				user.login(username, password)
+				password := PasswordPrompt(">Enter password: ")
+				user, err = login(username, password)
+				if err != nil {
+					fmt.Println("Error: " + err.Error())
+				}
 
 				// Write user's credentials to YAML file
 				yamlData, err := yaml.Marshal(&user)
