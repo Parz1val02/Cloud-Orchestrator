@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
@@ -41,7 +42,15 @@ func mongoInit() {
 }
 
 func updateUser(userID, token string, lastLogin time.Time) error {
-	filter := bson.M{"_id": userID}
+	objID, err := primitive.ObjectIDFromHex(userID)
+	fmt.Println(userID)
+
+	if err != nil {
+		fmt.Println("ObjectIDFromHex ERROR", err)
+	} else {
+		fmt.Println("ObjectIDFromHex:", objID)
+	}
+	filter := bson.M{"_id": bson.M{"$eq": objID}}
 
 	update := bson.M{
 		"$set": bson.M{
@@ -50,14 +59,21 @@ func updateUser(userID, token string, lastLogin time.Time) error {
 		},
 	}
 
-	opts := options.Update().SetUpsert(true)
-
-	_, err := collection.UpdateOne(context.Background(), filter, update, opts)
+	_, err = collection.UpdateOne(context.Background(), filter, update)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func hashPassword(password string) (string, error) {
+	passwordBytes := []byte(password)
+
+	hashedPasswordBytes, err := bcrypt.
+		GenerateFromPassword(passwordBytes, bcrypt.DefaultCost)
+
+	return string(hashedPasswordBytes), err
 }
 
 func loginHandler(c *gin.Context) {
@@ -78,15 +94,25 @@ func loginHandler(c *gin.Context) {
 	}
 
 	var user User
+	fmt.Println(loginReq.Username)
+	fmt.Println(loginReq.Password)
+	//hashedPassword, err := hashPassword(loginReq.Password)
+	//if err != nil {
+	//	println(fmt.Println("Error hashing password"))
+	//	return
+	//}
+	//fmt.Println(hashedPassword)
 	filter := bson.M{"username": loginReq.Username}
 	err := collection.FindOne(context.Background(), filter).Decode(&user)
 	if err != nil {
+		fmt.Println("username mal")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginReq.Password))
 	if err != nil {
+		fmt.Println("password mal")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
@@ -99,5 +125,5 @@ func loginHandler(c *gin.Context) {
 		return
 	}
 	fmt.Println(user.Username)
-	c.JSON(http.StatusOK, gin.H{"data": user})
+	c.JSON(http.StatusOK, gin.H{"user": user})
 }
