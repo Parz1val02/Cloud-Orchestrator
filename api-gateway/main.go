@@ -15,14 +15,19 @@ import (
 )
 
 const (
-	APIGatewayURL  = "http://localhost:8080"
-	AuthserviceURL = "http://localhost:8081"
+	APIGatewayURL       = "http://localhost:8080"
+	AuthserviceURL      = "http://localhost:8081"
+	TemplateserviceeURL = "http://localhost:5000"
 )
 
 func main() {
-	proxy1, err := createReverseProxy(AuthserviceURL)
-	if err != nil {
-		log.Fatalf("Error creating reverse proxy for authservice: %v", err)
+	proxy1, err1 := createReverseProxy(AuthserviceURL)
+	proxy2, err2 := createReverseProxy(TemplateserviceeURL)
+	if err1 != nil {
+		log.Fatalf("Error creating reverse proxy for authservice: %v", err1)
+	}
+	if err2 != nil {
+		log.Fatalf("Error creating reverse proxy for templateservice: %v", err2)
 	}
 
 	r := gin.Default()
@@ -32,6 +37,7 @@ func main() {
 
 	r.POST("/login", loginHandler)
 	r.Any("/authservice/*path", proxy1)
+	r.Any("/templateservice/*path", proxy2)
 
 	log.Printf("API Gateway listening on %s", APIGatewayURL)
 	log.Fatal(r.Run(":8080"))
