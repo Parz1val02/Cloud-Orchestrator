@@ -76,6 +76,20 @@ func hashPassword(password string) (string, error) {
 	return string(hashedPasswordBytes), err
 }
 
+func getTokenByToken(token string) (string, error) {
+	filter := bson.M{"token": token}
+
+	var result struct {
+		Token string `bson:"token"`
+	}
+	err := collection.FindOne(context.Background(), filter).Decode(&result)
+	if err != nil {
+		return "", err 
+	}
+
+	return result.Token, nil 
+}
+
 func loginHandler(c *gin.Context) {
 	mongoInit()
 	defer func() {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -16,7 +17,6 @@ import (
 const (
 	APIGatewayURL  = "http://localhost:8080"
 	AuthserviceURL = "http://localhost:8081"
-	APIKey         = "your-api-key"
 )
 
 func main() {
@@ -27,7 +27,7 @@ func main() {
 
 	r := gin.Default()
 
-	r.Use(authenticate(APIKey))
+	r.Use(authenticate())
 	r.Use(rateLimit())
 
 	r.POST("/login", loginHandler)
@@ -54,14 +54,25 @@ func createReverseProxy(targetURL string) (func(*gin.Context), error) {
 	}, nil
 }
 
-func authenticate(apiKey string) gin.HandlerFunc {
+func authenticate() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.Request.URL.Path == "/login" {
 			fmt.Println("entrando /login")
 			c.Next()
 			return
 		}
+		mongoInit()
+		defer func() {
+			if err := mongoClient.Disconnect(context.TODO()); err != nil {
+				panic(err)
+			}
+		}()
 		key := c.GetHeader("X-API-Key")
+		apiKey, err := getTokenByToken(key)
+		fmt.Println("api key de bd" + apiKey)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		}
 		if key != apiKey {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 			return
