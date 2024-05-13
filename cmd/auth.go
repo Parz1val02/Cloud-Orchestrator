@@ -71,18 +71,28 @@ func login(username, password string) (User, error) {
 	return data.User, nil
 }
 
-func logout(username string) {
+func logout(username, token string) {
 	authData := map[string]string{
 		"username": username,
 	}
 
 	jsonData, _ := json.Marshal(authData)
-	resp, err := http.Post("http://localhost:8080/auth/logout", "application/json", bytes.NewBuffer(jsonData))
+	client := &http.Client{}
+	req, err := http.NewRequest("POST", "http://localhost:8080/authservice/logout", bytes.NewBuffer(jsonData))
 	if err != nil {
-		fmt.Println("Error in authentication", err)
+		fmt.Println("Error creating request:", err)
+		os.Exit(1)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-API-Key", token)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error making request:", err)
 		os.Exit(1)
 	}
 	defer resp.Body.Close()
+
 	if resp.StatusCode != http.StatusOK {
 		fmt.Printf("Unexpected status code: %d", resp.StatusCode)
 		return
@@ -151,7 +161,7 @@ and usage of using your command.`,
 					fmt.Println(">Error writing to file", err)
 					return
 				}
-				fmt.Println(">User logged in successfully.")
+				fmt.Println(">UseR logged in successfully.")
 			} else {
 				// Config file was found but another error was produced
 				fmt.Println(">Configurations loaded but other error happened")
@@ -185,7 +195,8 @@ and usage of using your command.`,
 			}
 		} else {
 			username := viper.GetString("username")
-			logout(username)
+			token := viper.GetString("token")
+			logout(username, token)
 			// File exists, attempt to remove it
 			if err := os.Remove(filePath); err != nil {
 				fmt.Println(">Error deleting file:", err)
