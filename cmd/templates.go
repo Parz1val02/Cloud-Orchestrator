@@ -4,10 +4,13 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
-	configs "github.com/Parz1val02/cloud-cli/configs"
+	simplelist "github.com/Parz1val02/cloud-cli/simplelist"
+	simpletable "github.com/Parz1val02/cloud-cli/simpletable"
+	structs "github.com/Parz1val02/cloud-cli/structs"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/common-nighthawk/go-figure"
 	"github.com/spf13/cobra"
@@ -29,21 +32,42 @@ var templatesCmd = &cobra.Command{
 			fmt.Printf("Alas, there's been an error: %v", err)
 			os.Exit(1)
 		}
-		if m, ok := m.(configs.Model); ok && m.Choices[m.Cursor] != "" {
+		if m, ok := m.(simplelist.Model); ok && m.Choices[m.Cursor] != "" {
 			if m.Quit {
 				fmt.Printf("\n---\nQuitting!\n")
 			} else {
 				fmt.Printf("\n---\nYou chose %s!\n", m.Choices[m.Cursor])
+				switch m.Cursor {
+				case 0:
+					listTemplates()
+				default:
+
+				}
 			}
 		}
 	},
 }
 
-func initialModelTopologies() configs.Model {
-	return configs.Model{
-		Choices:  []string{"List templates", "List template by id", "Create template", "Edit template", "Delete template", "Graph template", "Import template", "Export template"},
+func initialModelTopologies() simplelist.Model {
+	return simplelist.Model{
+		Choices:  []string{"List templates", "Create template", "Edit template", "Delete template", "Graph template", "Import template", "Export template"},
 		Selected: make(map[int]struct{}),
 	}
+}
+
+func listTemplates() {
+	templateFile, err := os.Open("cloud.templates.json")
+	if err != nil {
+		fmt.Println("Error opening file: ", err.Error())
+	}
+	defer templateFile.Close()
+
+	var template structs.Templates
+	if err = json.NewDecoder(templateFile).Decode(&template); err != nil {
+		fmt.Println("Error parsing json: ", err.Error())
+	}
+
+	simpletable.MainTable()
 }
 
 func init() {

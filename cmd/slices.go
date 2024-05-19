@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"os"
 
-	configs "github.com/Parz1val02/cloud-cli/configs"
+	simplelist "github.com/Parz1val02/cloud-cli/simplelist"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -25,7 +25,7 @@ var slicesCmd = &cobra.Command{
 			fmt.Printf("Alas, there's been an error: %v", err)
 			os.Exit(1)
 		}
-		if m, ok := m.(configs.Model); ok && m.Choices[m.Cursor] != "" {
+		if m, ok := m.(simplelist.Model); ok && m.Choices[m.Cursor] != "" {
 			if m.Quit {
 				fmt.Printf("\n---\nQuitting!\n")
 			} else {
@@ -35,8 +35,8 @@ var slicesCmd = &cobra.Command{
 	},
 }
 
-func initialModelSlices() configs.Model {
-	return configs.Model{
+func initialModelSlices() simplelist.Model {
+	return simplelist.Model{
 		Choices:  []string{"Create slice", "List slices", "Edit slice", "Delete slice"},
 		Selected: make(map[int]struct{}),
 	}
