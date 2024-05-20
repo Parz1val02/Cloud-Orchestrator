@@ -18,8 +18,7 @@ var BaseStyle = lipgloss.NewStyle().
 	PaddingLeft(4).
 	PaddingRight(4).
 	PaddingBottom(4).
-	BorderStyle(lipgloss.NormalBorder()).
-	BorderForeground(lipgloss.Color("86"))
+	BorderStyle(lipgloss.NormalBorder())
 
 type Model struct {
 	Table table.Model
