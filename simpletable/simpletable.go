@@ -14,17 +14,19 @@ import (
 
 var BaseStyle = lipgloss.NewStyle().
 	Bold(true).
-	PaddingTop(4).
-	PaddingLeft(4).
-	PaddingRight(4).
-	PaddingBottom(4).
-	BorderStyle(lipgloss.NormalBorder())
+	Padding(2).
+	Margin(2).
+	Align(lipgloss.Center).
+	BorderStyle(lipgloss.RoundedBorder())
 
 type Model struct {
 	Table table.Model
+	Quit  bool
 }
 
-func (m Model) Init() tea.Cmd { return nil }
+func (m Model) Init() tea.Cmd {
+	return nil
+}
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
@@ -38,11 +40,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.Table.Focus()
 			}
 		case "q", "ctrl+c":
+			m.Quit = true
 			return m, tea.Quit
 		case "enter":
-			return m, tea.Batch(
-				tea.Printf("Let's go to %s!", m.Table.SelectedRow()[1]),
-			)
+			return m, tea.Quit
+			//return m, tea.Batch(
+			//	tea.Printf("Let's go to %s!", m.Table.SelectedRow()[0]),
+			//)
 		}
 	}
 	m.Table, cmd = m.Table.Update(msg)
@@ -53,7 +57,7 @@ func (m Model) View() string {
 	return BaseStyle.Render(m.Table.View()) + "\n"
 }
 
-func MainTable() {
+func MainTable() (string, error) {
 	templateFile, err := os.Open("cloud.templates.json")
 	if err != nil {
 		fmt.Println("Error opening file: ", err.Error())
@@ -65,23 +69,23 @@ func MainTable() {
 		fmt.Println("Error parsing json: ", err.Error())
 	}
 	columns := []table.Column{
-		{Title: "ID", Width: 10},
-		{Title: "Name", Width: 15},
-		{Title: "Description", Width: 15},
-		{Title: "Creation Timestamp", Width: 15},
+		{Title: "ID", Width: 30},
+		{Title: "Name", Width: 30},
+		{Title: "Description", Width: 30},
+		{Title: "Creation Timestamp", Width: 20},
 	}
 
 	rows := []table.Row{
-		//{"1", "Tokyo", "Japan", "37,274,000"},
-		//{"2", "Delhi", "India", "32,065,760"},
-		//{"3", "Shanghai", "China", "28,516,904"},
-		//{"4", "Dhaka", "Bangladesh", "22,478,116"},
-		//{"5", "São Paulo", "Brazil", "22,429,800"},
-		//{"6", "Mexico City", "Mexico", "22,085,140"},
-		//{"7", "Cairo", "Egypt", "21,750,020"},
-		//{"8", "Beijing", "China", "21,333,332"},
-		//{"9", "Mumbai", "India", "20,961,472"},
-		//{"10", "Osaka", "Japan", "19,059,856"},
+		{"1", "Tokyo", "Japan", "37,274,000"},
+		{"2", "Delhi", "India", "32,065,760"},
+		{"3", "Shanghai", "China", "28,516,904"},
+		{"4", "Dhaka", "Bangladesh", "22,478,116"},
+		{"5", "São Paulo", "Brazil", "22,429,800"},
+		{"6", "Mexico City", "Mexico", "22,085,140"},
+		{"7", "Cairo", "Egypt", "21,750,020"},
+		{"8", "Beijing", "China", "21,333,332"},
+		{"9", "Mumbai", "India", "20,961,472"},
+		{"10", "Osaka", "Japan", "19,059,856"},
 		//{"11", "Chongqing", "China", "16,874,740"},
 		//{"12", "Karachi", "Pakistan", "16,839,950"},
 		//{"13", "Istanbul", "Turkey", "15,636,243"},
@@ -185,24 +189,36 @@ func MainTable() {
 		table.WithColumns(columns),
 		table.WithRows(rows),
 		table.WithFocused(true),
-		table.WithHeight(7),
+		table.WithHeight(10),
 	)
 
 	s := table.DefaultStyles()
 	s.Header = s.Header.
 		BorderStyle(lipgloss.NormalBorder()).
 		BorderForeground(lipgloss.Color("240")).
+		Bold(true).
+		Align(lipgloss.Center).
 		BorderBottom(true).
 		Bold(false)
 	s.Selected = s.Selected.
-		Foreground(lipgloss.Color("229")).
-		Background(lipgloss.Color("57")).
+		Foreground(lipgloss.Color("236")).
+		Background(lipgloss.Color("12")).
 		Bold(false)
 	t.SetStyles(s)
 
-	m := Model{t}
-	if _, err := tea.NewProgram(m).Run(); err != nil {
+	p := tea.NewProgram(Model{t, false})
+	m, err := p.Run()
+	if err != nil {
 		fmt.Println("Error running program:", err)
 		os.Exit(1)
+	}
+	if m, ok := m.(Model); ok && m.Table.SelectedRow()[0] != "" {
+		if m.Quit {
+			return "", fmt.Errorf("\n---\nQuitting!\n")
+		} else {
+			return m.Table.SelectedRow()[0], nil
+		}
+	} else {
+		return "", fmt.Errorf("Error runing program")
 	}
 }

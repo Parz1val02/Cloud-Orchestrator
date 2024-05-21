@@ -4,13 +4,13 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	//"encoding/json"
+	"encoding/json"
 	"fmt"
 	"os"
 
 	simplelist "github.com/Parz1val02/cloud-cli/simplelist"
 	simpletable "github.com/Parz1val02/cloud-cli/simpletable"
-	// structs "github.com/Parz1val02/cloud-cli/structs"
+	structs "github.com/Parz1val02/cloud-cli/structs"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/common-nighthawk/go-figure"
 	"github.com/spf13/cobra"
@@ -56,7 +56,20 @@ func initialModelTopologies() simplelist.Model {
 }
 
 func listTemplates() {
-	simpletable.MainTable()
+	templateId, err := simpletable.MainTable()
+	if err != nil {
+		fmt.Println(err)
+	}
+	templateFile, err := os.Open("cloud.templatebyid.json")
+	if err != nil {
+		fmt.Println("Error opening file: ", err.Error())
+	}
+	defer templateFile.Close()
+
+	var templateById structs.ListTemplateById
+	if err = json.NewDecoder(templateFile).Decode(&templateById); err != nil {
+		fmt.Println("Error parsing json: ", err.Error())
+	}
 }
 
 func init() {
