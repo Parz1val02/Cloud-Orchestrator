@@ -21,7 +21,11 @@ def serialize_document(doc):
 @app.route('/templates', methods=['GET'])
 def listar_plantillas():
     templates = [serialize_document(template) for template in collection.find()]
-    return jsonify(templates)
+    if templates:
+        return jsonify({'result': 'success', 'templates': templates})
+    else:
+        return jsonify({'result': 'success', 'msg': 'No existen templates vinculados al usuario'})
+        
 
 # Endpoint para crear una nueva plantilla / working
 @app.route('/templates', methods=['POST'])
