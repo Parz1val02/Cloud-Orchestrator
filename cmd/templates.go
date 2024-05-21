@@ -16,6 +16,46 @@ import (
 	"github.com/spf13/viper"
 )
 
+func initialModelCRUD1() simplelist.Model {
+	return simplelist.Model{
+		Choices:  []string{"List templates", "Create template", "Import template"},
+		Selected: make(map[int]struct{}),
+	}
+}
+
+func initialModelCRUD2() simplelist.Model {
+	return simplelist.Model{
+		Choices:  []string{"List template configuration", "Edit template", "Delete template", "Graph template", "Export template"},
+		Selected: make(map[int]struct{}),
+	}
+}
+
+func listTemplates() {
+	templateId, err := simpletable.MainTable()
+	if err != nil {
+		fmt.Println(err)
+	}
+	p := tea.NewProgram(initialModelCRUD2())
+	m, err := p.Run()
+	if err != nil {
+		fmt.Printf("Alas, there's been an error: %v", err)
+		os.Exit(1)
+	}
+	if m, ok := m.(simplelist.Model); ok && m.Choices[m.Cursor] != "" {
+		if m.Quit {
+			fmt.Printf("\n---\nQuitting!\n")
+		} else {
+			fmt.Printf("\n---\nYou chose %s!\n", m.Choices[m.Cursor])
+			switch m.Cursor {
+			case 0:
+				tabs.MainTabs(templateId)
+			default:
+
+			}
+		}
+	}
+}
+
 // topologiesCmd represents the topologies command
 var templatesCmd = &cobra.Command{
 	Use:   "templates",
@@ -25,7 +65,7 @@ var templatesCmd = &cobra.Command{
 		myFigure := figure.NewFigure("PUCP Private Cloud Orchestrator", "doom", true)
 		myFigure.Print()
 		fmt.Println()
-		p := tea.NewProgram(initialModelTopologies())
+		p := tea.NewProgram(initialModelCRUD1())
 		m, err := p.Run()
 		if err != nil {
 			fmt.Printf("Alas, there's been an error: %v", err)
@@ -36,6 +76,7 @@ var templatesCmd = &cobra.Command{
 				fmt.Printf("\n---\nQuitting!\n")
 			} else {
 				fmt.Printf("\n---\nYou chose %s!\n", m.Choices[m.Cursor])
+				fmt.Print("\n---\nSelect a template to execute CRUD operation on\n")
 				switch m.Cursor {
 				case 0:
 					listTemplates()
@@ -45,21 +86,6 @@ var templatesCmd = &cobra.Command{
 			}
 		}
 	},
-}
-
-func initialModelTopologies() simplelist.Model {
-	return simplelist.Model{
-		Choices:  []string{"List templates", "Create template", "Edit template", "Delete template", "Graph template", "Import template", "Export template"},
-		Selected: make(map[int]struct{}),
-	}
-}
-
-func listTemplates() {
-	templateId, err := simpletable.MainTable()
-	if err != nil {
-		fmt.Println(err)
-	}
-    tabs.MainTabs(templateId)
 }
 
 func init() {
