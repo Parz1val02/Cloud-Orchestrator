@@ -80,6 +80,8 @@ var templatesCmd = &cobra.Command{
 				switch m.Cursor {
 				case 0:
 					listTemplates()
+				case 1:
+					createTemplate() // funcion crear plantilla
 				default:
 
 				}
