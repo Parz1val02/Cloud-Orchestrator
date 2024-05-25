@@ -201,7 +201,38 @@ func createCustomTopology() Topology {
 	return Topology{Nodes: nodes, Links: links}
 }
 
-func createTemplate() {
+/*
+func graphTemplate(nodes []Node, links []Link) error {
+	// Crear un nuevo gráfico
+	graphData := graph.NewGraph()
+	graphData.Nodes = make([]*graph.Node, len(nodes))
+	graphData.Edges = make([]*graph.Edge, len(links))
+
+	for i, node := range nodes {
+		graphData.Nodes[i] = &graph.Node{ID: node.NodeID, Label: node.Name}
+	}
+
+	for i, link := range links {
+		graphData.Edges[i] = &graph.Edge{Source: link.Source, Target: link.Target}
+	}
+
+	// Configurar el diseño del gráfico
+	layout := graph.NewLayout()
+	layout.Title = "Topology Graph"
+	layout.Height = 600
+	layout.Width = 800
+
+	// Crear el archivo HTML con el gráfico interactivo
+	file, err := os.Create("topology.html")
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	return graphData.Render(file, layout)
+}*/
+
+func CreateTemplate() {
 	name := promptString("Enter template name: ")
 	description := promptString("Enter template description: ")
 	topologyType := promptString("Do you want to create a predefined or custom topology? (predefined/custom): ")
@@ -231,6 +262,13 @@ func createTemplate() {
 
 	templateJSON, _ := json.MarshalIndent(template, "", "  ")
 	fmt.Printf("Generated JSON:\n%s\n", string(templateJSON))
+
+	/*
+		// Graficar la topología y guardarla como un archivo HTML
+		if err := graphTemplate(topology.Nodes, topology.Links); err != nil {
+			fmt.Println("Error:", err)
+			return
+		}*/
 
 	// Implement HTTP request to send JSON to the server as needed
 

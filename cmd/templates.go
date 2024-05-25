@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 
+	crud "github.com/Parz1val02/cloud-cli/crud_functions"
 	simplelist "github.com/Parz1val02/cloud-cli/simplelist"
 	simpletable "github.com/Parz1val02/cloud-cli/simpletable"
 	tabs "github.com/Parz1val02/cloud-cli/tabs"
@@ -81,7 +82,7 @@ var templatesCmd = &cobra.Command{
 				case 0:
 					listTemplates()
 				case 1:
-					createTemplate() // funcion crear plantilla
+					crud.CreateTemplate() // funcion crear plantilla
 				default:
 
 				}
