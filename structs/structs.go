@@ -7,10 +7,11 @@ import (
 type ListTemplates struct {
 	Result    string `json:"result"`
 	Templates []struct {
-		TemplateID  string    `json:"template_id"`
-		Name        string    `json:"name"`
-		CreatedAt   time.Time `json:"created_at"`
-		Description string    `json:"description"`
+		TemplateID   string    `json:"template_id"`
+		Name         string    `json:"name"`
+		CreatedAt    time.Time `json:"created_at"`
+		Description  string    `json:"description"`
+		TopologyType string    `json:"topology_type"`
 	} `json:"templates"`
 }
 
@@ -40,7 +41,8 @@ type ListTemplateById struct {
 				Storage        int    `json:"storage"`
 			} `json:"nodes"`
 		} `json:"topology"`
-		UserID string `json:"user_id"`
-		VlanID string `json:"vlan_id"`
+		UserID       string `json:"user_id"`
+		VlanID       string `json:"vlan_id"`
+		TopologyType string `json:"topology_type"`
 	} `json:"template"`
 }

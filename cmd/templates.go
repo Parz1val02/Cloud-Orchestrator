@@ -36,22 +36,24 @@ func listTemplates() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	p := tea.NewProgram(initialModelCRUD2())
-	m, err := p.Run()
-	if err != nil {
-		fmt.Printf("Alas, there's been an error: %v", err)
-		os.Exit(1)
-	}
-	if m, ok := m.(simplelist.Model); ok && m.Choices[m.Cursor] != "" {
-		if m.Quit {
-			fmt.Printf("\n---\nQuitting!\n")
-		} else {
-			fmt.Printf("\n---\nYou chose %s!\n", m.Choices[m.Cursor])
-			switch m.Cursor {
-			case 0:
-				tabs.MainTabs(templateId)
-			default:
+	if templateId != "" {
+		p := tea.NewProgram(initialModelCRUD2())
+		m, err := p.Run()
+		if err != nil {
+			fmt.Printf("Alas, there's been an error: %v", err)
+			os.Exit(1)
+		}
+		if m, ok := m.(simplelist.Model); ok && m.Choices[m.Cursor] != "" {
+			if m.Quit {
+				fmt.Printf("\n---\nQuitting!\n")
+			} else {
+				fmt.Printf("\n---\nYou chose %s!\n", m.Choices[m.Cursor])
+				switch m.Cursor {
+				case 0:
+					tabs.MainTabs(templateId)
+				default:
 
+				}
 			}
 		}
 	}
@@ -77,9 +79,9 @@ var templatesCmd = &cobra.Command{
 				fmt.Printf("\n---\nQuitting!\n")
 			} else {
 				fmt.Printf("\n---\nYou chose %s!\n", m.Choices[m.Cursor])
-				fmt.Print("\n---\nSelect a template to execute CRUD operation on\n")
 				switch m.Cursor {
 				case 0:
+					fmt.Print("\n---\nSelect a template to execute CRUD operation on\n")
 					listTemplates()
 				case 1:
 					crud.CreateTemplate() // funcion crear plantilla

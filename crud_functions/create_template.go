@@ -42,6 +42,7 @@ type Template struct {
 	Name             string    `json:"name"`
 	Topology         Topology  `json:"topology"`
 	UserID           string    `json:"user_id"`
+	TopologyType     string    `json:"topology_type"`
 }
 
 func promptString(promptText string) string {
@@ -443,7 +444,6 @@ func printTopologyTable(topology Topology) {
 }
 
 func graphTemplateTopology(template Template) {
-
 	templateDetails := `
 			<strong>Template Name:</strong> ` + template.Name + `<br>
 			<strong>Description:</strong> ` + template.Description + `<br>
@@ -621,8 +621,8 @@ func CreateTemplate() {
 
 	var topology Topology
 	if topologyType == "predefined" {
-		topoType := promptTopology()
-		topology = createPredefinedTopology(topoType)
+		topologyType = promptTopology()
+		topology = createPredefinedTopology(topologyType)
 	} else {
 		topology = createCustomTopology()
 	}
@@ -639,6 +639,7 @@ func CreateTemplate() {
 		Description:      description,
 		Name:             name,
 		Topology:         topology,
+		TopologyType:     topologyType,
 		UserID:           "6640550a53c1187a6899a5a9",
 	}
 
@@ -655,5 +656,4 @@ func CreateTemplate() {
 		}*/
 
 	// Implement HTTP request to send JSON to the server as needed
-
 }

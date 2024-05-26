@@ -3,6 +3,7 @@ package simpletable
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 
 	structs "github.com/Parz1val02/cloud-cli/structs"
@@ -14,10 +15,10 @@ import (
 
 var BaseStyle = lipgloss.NewStyle().
 	Bold(true).
-	Padding(2).
-	Margin(2).
-	Align(lipgloss.Center).
-	BorderStyle(lipgloss.RoundedBorder())
+	Padding(1).
+	Margin(1).
+	BorderStyle(lipgloss.RoundedBorder()).
+	BorderForeground(lipgloss.Color("12"))
 
 type Model struct {
 	Table table.Model
@@ -58,39 +59,58 @@ func (m Model) View() string {
 }
 
 func MainTable() (string, error) {
-	templateFile, err := os.Open("cloud.templates.json")
-	if err != nil {
-		fmt.Println("Error opening file: ", err.Error())
-	}
-	defer templateFile.Close()
-
+	serverPort := 5000
 	var templates structs.ListTemplates
-	if err = json.NewDecoder(templateFile).Decode(&templates); err != nil {
-		fmt.Println("Error parsing json: ", err.Error())
+	requestURL := fmt.Sprintf("http://localhost:%d/templates", serverPort)
+	resp, err := http.Get(requestURL)
+	if err != nil {
+		fmt.Printf("error making http request: %s\n", err)
+		os.Exit(1)
 	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		// err = fmt.Errorf("Unexpected status code: %d", resp.StatusCode)
+		fmt.Printf("Unexpected status code: %d\n", resp.StatusCode)
+	}
+	err = json.NewDecoder(resp.Body).Decode(&templates)
+	if err != nil {
+		// err = fmt.Errorf("Error decoding response body: %v", err)
+		fmt.Printf("Error decoding response body: %v\n", err)
+	}
+
+	//templateFile, err := os.Open("cloud.templates.json")
+	//if err != nil {
+	//	fmt.Println("Error opening file: ", err.Error())
+	//}
+	//defer templateFile.Close()
+
+	//if err = json.NewDecoder(templateFile).Decode(&templates); err != nil {
+	//	fmt.Println("Error parsing json: ", err.Error())
+	//}
 	columns := []table.Column{
 		{Title: "ID", Width: 30},
 		{Title: "Name", Width: 30},
 		{Title: "Description", Width: 30},
 		{Title: "Creation Timestamp", Width: 20},
+		{Title: "Topology Type", Width: 20},
 	}
 
 	rows := []table.Row{
-		{"1", "Tokyo", "Japan", "37,274,000"},
-		{"2", "Delhi", "India", "32,065,760"},
-		{"3", "Shanghai", "China", "28,516,904"},
-		{"4", "Dhaka", "Bangladesh", "22,478,116"},
-		{"5", "São Paulo", "Brazil", "22,429,800"},
-		{"6", "Mexico City", "Mexico", "22,085,140"},
-		{"7", "Cairo", "Egypt", "21,750,020"},
-		{"8", "Beijing", "China", "21,333,332"},
-		{"9", "Mumbai", "India", "20,961,472"},
-		{"10", "Osaka", "Japan", "19,059,856"},
+		{"1", "Tokyo", "Japan", "37,274,000", "ga"},
+		{"2", "Delhi", "India", "32,065,760", "ga"},
+		{"3", "Shanghai", "China", "28,516,904", "ga"},
+		{"4", "Dhaka", "Bangladesh", "22,478,116", "ga"},
+		{"5", "São Paulo", "Brazil", "22,429,800", "ga"},
+		{"6", "Mexico City", "Mexico", "22,085,140", "ga"},
+		{"7", "Cairo", "Egypt", "21,750,020", "ga"},
+		{"8", "Beijing", "China", "21,333,332", "ga"},
+		{"9", "Mumbai", "India", "20,961,472", "ga"},
+		{"10", "Osaka", "Japan", "19,059,856", "ga"},
 	}
 	if templates.Result == "success" {
 		for _, v := range templates.Templates {
 			var row []string
-			row = append(row, v.TemplateID, v.Name, v.Description, v.CreatedAt.Format("2006-01-02 15:04:05"))
+			row = append(row, v.TemplateID, v.Name, v.Description, v.CreatedAt.Format("2006-01-02 15:04:05"), v.TopologyType)
 			rows = append(rows, row)
 		}
 	}
@@ -108,8 +128,7 @@ func MainTable() (string, error) {
 		BorderForeground(lipgloss.Color("240")).
 		Bold(true).
 		Align(lipgloss.Center).
-		BorderBottom(true).
-		Bold(false)
+		BorderBottom(true)
 	s.Selected = s.Selected.
 		Foreground(lipgloss.Color("236")).
 		Background(lipgloss.Color("12")).
