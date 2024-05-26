@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -90,7 +92,7 @@ func createLinealTopology() Topology {
 	var links []Link
 	for i := 0; i < numNodes-1; i++ {
 		links = append(links, Link{
-			LinkID: fmt.Sprintf("link_nd%d", i+1),
+			LinkID: fmt.Sprintf("nd%d_nd%d", i+1, i+2),
 			Source: nodes[i].Name,
 			Target: nodes[i+1].Name,
 		})
@@ -229,7 +231,7 @@ func createGeneralTreeTopology() Topology {
 
 				// Create link from parent to child
 				links = append(links, Link{
-					LinkID: fmt.Sprintf("nd%s_nd%s", parent.NodeID, node.NodeID),
+					LinkID: fmt.Sprintf("%s_%s", parent.NodeID, node.NodeID),
 					Source: parent.Name,
 					Target: node.Name,
 				})
@@ -417,9 +419,9 @@ func printTopologyTable(topology Topology) {
 	fmt.Println("Topology:")
 	fmt.Println("-------------------------------------------------------")
 	fmt.Println("Nodes:")
-	fmt.Printf("%-10s %-15s %-10s %-10s %-10s %-10s\n", "NodeID", "Name", "CPU", "Memory(GB)", "Storage(GB)", "Links")
+	fmt.Printf("%-10s %-10s %-10s %-15s %-15s %-15s\n", "NodeID", "Name", "CPU", "Memory(GB)", "Storage(GB)", "Links")
 	for _, node := range topology.Nodes {
-		fmt.Printf("%-10s %-15s %-10d %-10d %-10d", node.NodeID, node.Name, node.CPU, node.Memory, node.Storage)
+		fmt.Printf("%-10s %-10s %-10d %-15d %-15d", node.NodeID, node.Name, node.CPU, node.Memory, node.Storage)
 		linkedNodes := []string{}
 		for _, link := range topology.Links {
 			if link.Source == node.Name || link.Target == node.Name {
@@ -430,13 +432,182 @@ func printTopologyTable(topology Topology) {
 				}
 			}
 		}
-		fmt.Printf("%-10s\n", strings.Join(linkedNodes, ", "))
+		fmt.Printf("%-15s\n", strings.Join(linkedNodes, ", "))
 	}
 	fmt.Println("-------------------------------------------------------")
 	fmt.Println("Links:")
 	fmt.Printf("%-10s %-15s %-15s\n", "LinkID", "Source", "Target")
 	for _, link := range topology.Links {
 		fmt.Printf("%-10s %-15s %-15s\n", link.LinkID, link.Source, link.Target)
+	}
+}
+
+func graphTemplateTopology(template Template) {
+
+	templateDetails := `
+			<strong>Template Name:</strong> ` + template.Name + `<br>
+			<strong>Description:</strong> ` + template.Description + `<br>
+			<strong>Availability Zone:</strong> ` + template.AvailabilityZone + `<br>
+			`
+
+	htmlContent := `
+	<!DOCTYPE html>
+	<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Network Topology</title>
+		<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.29.2/cytoscape.min.js" integrity="sha512-yi5TwB0WBpzqlJXNLURNMtpFXJt4yxJhkOG8yqkVQYWhfMkAoDF93rZ/KjfoN1gADGr5uKXvr5/Bw6CC03YWpA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+		<style>
+			#cy {
+				width: 100%;
+				height: 400px;
+				border: 1px solid #333; /* Borde sólido de 1 píxel de color gris oscuro */
+				border-radius: 3px; /* Borde redondeado */
+			}
+			#info-container {
+				padding: 10px;
+				border: 1px solid #ccc;
+				border-radius: 5px;
+				background-color: #f9f9f9;
+			}
+			#node-info {
+				font-family: Arial, sans-serif;
+				font-size: 14px;
+			}
+			#template-details {
+				margin-bottom: 10px;
+			}
+			#template-details strong {
+				color: #333;
+				margin-right: 5px;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<div class="row justify-content-center mt-5">
+				<div class="col-md-8 text-center">
+					<h1 class="mb-4">Network Topology</h1>
+					<div id="template-details" class="text-left">
+					` + templateDetails + `
+					</div>
+				</div>
+			</div>
+			<div class="row justify-content-center">
+				<div class="col-md-8">
+					<div id="cy"></div>
+				</div>
+				<div class="col-md-4">
+					<div id="info-container">
+						<div id="node-info"></div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<script>
+			document.addEventListener('DOMContentLoaded', function() {
+				var cy = cytoscape({
+					container: document.getElementById('cy'),
+					elements: [
+`
+	for _, node := range template.Topology.Nodes {
+		htmlContent += fmt.Sprintf(`
+                    { data: { id: '%s', name: '%s', cpu: '%d', memory: '%d', storage: '%d', image: '%s' } },
+`, node.Name, node.Name, node.CPU, node.Memory, node.Storage, node.Image)
+	}
+
+	for _, link := range template.Topology.Links {
+		htmlContent += fmt.Sprintf(`
+                    { data: { id: '%s', source: '%s', target: '%s' } },
+`, link.LinkID, link.Source, link.Target)
+	}
+
+	htmlContent += `
+	],
+	style: [
+		{
+			selector: 'node',
+			style: {
+				'label': 'data(name)',
+				'width': '60px',
+				'height': '60px',
+				'background-color': '#349beb', // Azul suave
+				'color': '#000', // Color de la etiqueta
+				'text-valign': 'center',
+				'text-halign': 'center'
+			}
+		},
+		{
+			selector: 'edge',
+			style: {
+				'width': 3,
+				'line-color': '#000', // Negro
+				'curve-style': 'bezier'
+			}
+		}
+	],
+	layout: {
+		name: 'grid',
+		rows: 1
+	}
+});
+
+// Función para mostrar información del nodo
+function showNodeInfo(node) {
+	var nodeData = node.data();
+	var nodeInfo = '<strong>Node:</strong> ' + nodeData.name + '<br>' +
+				   '<strong>vCPU:</strong> ' + nodeData.cpu + '<br>' +
+				   '<strong>Memory:</strong> ' + nodeData.memory + 'GB<br>' +
+				   '<strong>Storage:</strong> ' + nodeData.storage + 'GB<br>' + 
+				   '<strong>Image:</strong> ' + nodeData.image;
+	document.getElementById('node-info').innerHTML = nodeInfo;
+}
+
+// Agregar evento de clic a los nodos
+cy.on('tap', 'node', function(event) {
+	var node = event.target;
+	showNodeInfo(node);
+});
+});
+</script>
+</body>
+</html>
+
+`
+
+	file, err := os.Create("topology.html")
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	_, err = file.WriteString(htmlContent)
+	if err != nil {
+		panic(err)
+	}
+
+	// Open the HTML file in the default browser
+	openBrowser("topology.html")
+}
+
+func openBrowser(url string) {
+	var err error
+
+	switch os := runtime.GOOS; os {
+	case "linux":
+		err = exec.Command("xdg-open", url).Start()
+	case "windows":
+		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+	case "darwin":
+		err = exec.Command("open", url).Start()
+	default:
+		err = fmt.Errorf("unsupported platform")
+	}
+
+	if err != nil {
+		fmt.Printf("Failed to open browser: %v\n", err)
 	}
 }
 
@@ -471,6 +642,8 @@ func CreateTemplate() {
 	templateJSON, _ := json.MarshalIndent(template, "", "  ")
 	fmt.Printf("Generated JSON:\n%s\n", string(templateJSON))
 	printTopologyTable(topology)
+
+	graphTemplateTopology(template)
 	/*
 		// Graficar la topología y guardarla como un archivo HTML
 		if err := graphTemplate(topology.Nodes, topology.Links); err != nil {
