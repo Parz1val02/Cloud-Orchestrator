@@ -3,12 +3,15 @@ package tabs
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	structs "github.com/Parz1val02/cloud-cli/structs"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/jedib0t/go-pretty/v6/table"
 )
 
 type model struct {
@@ -50,11 +53,10 @@ func tabBorderWithBottom(left, middle, right string) lipgloss.Border {
 var (
 	inactiveTabBorder = tabBorderWithBottom("┴", "─", "┴")
 	activeTabBorder   = tabBorderWithBottom("┘", " ", "└")
-	docStyle          = lipgloss.NewStyle().Padding(1, 2, 1, 2)
-	highlightColor    = lipgloss.AdaptiveColor{Light: "#874BFD", Dark: "#7D56F4"}
-	inactiveTabStyle  = lipgloss.NewStyle().Border(inactiveTabBorder, true).BorderForeground(highlightColor).Padding(0, 1)
+	docStyle          = lipgloss.NewStyle().Padding(1).MarginBottom(1)
+	inactiveTabStyle  = lipgloss.NewStyle().Border(inactiveTabBorder, true).BorderForeground(lipgloss.Color("12")).Padding(0, 1)
 	activeTabStyle    = inactiveTabStyle.Copy().Border(activeTabBorder, true)
-	windowStyle       = lipgloss.NewStyle().BorderForeground(highlightColor).Padding(2, 0).Align(lipgloss.Center).Border(lipgloss.NormalBorder()).UnsetBorderTop()
+	windowStyle       = lipgloss.NewStyle().BorderForeground(lipgloss.Color("12")).Padding(1, 0).Align(lipgloss.Center).Border(lipgloss.NormalBorder()).UnsetBorderTop()
 )
 
 func (m model) View() string {
@@ -92,29 +94,61 @@ func (m model) View() string {
 }
 
 func MainTabs(templateId string) {
-	templateFile, err := os.Open("cloud.templatebyid.json")
-	if err != nil {
-		fmt.Println("Error opening file: ", err.Error())
-	}
-	defer templateFile.Close()
-
+	serverPort := 5000
 	var templateById structs.ListTemplateById
-	if err = json.NewDecoder(templateFile).Decode(&templateById); err != nil {
-		fmt.Println("Error parsing json: ", err.Error())
-	}
-	if templateById.Result == "success" && templateById.Template.TemplateID == templateId {
-		fmt.Println("gaaaaaaaaaaaa")
-	}
-	out, err := json.Marshal(templateById.Template.Topology)
+	requestURL := fmt.Sprintf("http://localhost:%d/templates/%s", serverPort, templateId)
+	resp, err := http.Get(requestURL)
 	if err != nil {
-		panic(err)
-	}
-	tabs := []string{"ID", "Name", "Description", "Creation Timestamp", "Topology"}
-	tabContent := []string{templateById.Template.TemplateID, templateById.Template.Name, templateById.Template.Description, templateById.Template.CreatedAt.Format("2006-01-02 15:04:05"), string(out)}
-	m := model{Tabs: tabs, TabContent: tabContent}
-	if _, err := tea.NewProgram(m).Run(); err != nil {
-		fmt.Println("Error running program:", err)
+		fmt.Printf("error making http request: %s\n", err)
 		os.Exit(1)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		// err = fmt.Errorf("Unexpected status code: %d", resp.StatusCode)
+		fmt.Printf("Unexpected status code: %d\n", resp.StatusCode)
+	}
+	err = json.NewDecoder(resp.Body).Decode(&templateById)
+	if err != nil {
+		// err = fmt.Errorf("Error decoding response body: %v", err)
+		fmt.Printf("Error decoding response body: %v\n", err)
+	}
+
+	//templateFile, err := os.Open("cloud.templatebyid.json")
+	//if err != nil {
+	//	fmt.Println("Error opening file: ", err.Error())
+	//}
+	//defer templateFile.Close()
+	//if err = json.NewDecoder(templateFile).Decode(&templateById); err != nil {
+	//	fmt.Println("Error parsing json: ", err.Error())
+	//}
+
+	if templateById.Result == "success" && templateById.Template.TemplateID == templateId {
+		//out, err := json.Marshal(templateById.Template.Topology)
+		//if err != nil {
+		//	panic(err)
+		//}
+		style := lipgloss.NewStyle().
+			Bold(true).Align(lipgloss.Center)
+		tabs := []string{style.Render("\t\tTemplate Info\t\t"), style.Render("\t\tNodes\t\t"), style.Render("\t\tLinks\t\t")}
+		info_string := fmt.Sprintf("ID: %s\n\nName: %s\n\nDescription: %s\n\nCreated at: %s\n\nTopology type: %s\n\nAvailability zone: %s\n\nVlan: %s\n\nDeployed: %s",
+			templateById.Template.TemplateID, templateById.Template.Name, templateById.Template.Description, templateById.Template.CreatedAt.Format("2006-01-02 15:04:05"), templateById.Template.TopologyType,
+			templateById.Template.AvailabilityZone, templateById.Template.VlanID, strconv.FormatBool(templateById.Template.Deployed))
+		nodes := table.NewWriter()
+		nodes.AppendHeader(table.Row{"ID", "Name", "Image", "Access Protocol", "CPU", "Memory", "Storage"})
+		for _, v := range templateById.Template.Topology.Nodes {
+			nodes.AppendRow(table.Row{v.NodeID, v.Name, v.Image, v.AccessProtocol, strconv.Itoa(v.CPU), strconv.Itoa(v.Memory), strconv.Itoa(v.Storage)})
+		}
+		links := table.NewWriter()
+		links.AppendHeader(table.Row{"ID", "Source", "Target"})
+		for _, v := range templateById.Template.Topology.Links {
+			links.AppendRow(table.Row{v.LinkID, v.Source, v.Target})
+		}
+		tabContent := []string{style.Render(info_string), style.Render(nodes.Render()), style.Render(links.Render())}
+		m := model{Tabs: tabs, TabContent: tabContent}
+		if _, err := tea.NewProgram(m).Run(); err != nil {
+			fmt.Println("Error running program:", err)
+			os.Exit(1)
+		}
 	}
 }
 

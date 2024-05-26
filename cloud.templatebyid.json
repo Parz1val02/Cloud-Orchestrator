@@ -8,7 +8,8 @@
 		"description": "Template con topologÃa tipo estrella",
 		"name": "Template Estrella Update Prueba definitiva prueba",
 		"topology": {
-			"links": [{
+			"links": [
+				{
 					"link_id": "nd1_nd2",
 					"source": "central_node",
 					"target": "peripheral_node1"
@@ -24,7 +25,8 @@
 					"target": "peripheral_node3"
 				}
 			],
-			"nodes": [{
+			"nodes": [
+				{
 					"node_id": "nd1",
 					"name": "central_node",
 					"access_protocol": "SSH",
@@ -75,6 +77,7 @@
 			]
 		},
 		"user_id": "6640550a53c1187a6899a5a9",
+		"topology_type": "estrella",
 		"vlan_id": "vlan_id_estrella"
 	}
 }
