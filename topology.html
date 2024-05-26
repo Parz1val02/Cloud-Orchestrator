@@ -40,9 +40,9 @@
 					<h1 class="mb-4">Network Topology</h1>
 					<div id="template-details" class="text-left">
 					
-			<strong>Template Name:</strong> name<br>
-			<strong>Description:</strong> descript<br>
-			<strong>Availability Zone:</strong> worker1<br>
+			<strong>Template Name:</strong> ga<br>
+			<strong>Description:</strong> ga<br>
+			<strong>Availability Zone:</strong> 1<br>
 			
 					</div>
 				</div>
@@ -64,31 +64,63 @@
 					container: document.getElementById('cy'),
 					elements: [
 
-                    { data: { id: 'node_1', name: 'node_1', cpu: '1', memory: '2', storage: '50', image: 'ubuntu' } },
+                    { data: { id: 'node_1', name: 'node_1', cpu: '1', memory: '2', storage: '50', image: '1' } },
 
-                    { data: { id: 'node_2', name: 'node_2', cpu: '2', memory: '4', storage: '100', image: 'ubuntu' } },
+                    { data: { id: 'node_2', name: 'node_2', cpu: '1', memory: '2', storage: '50', image: '1' } },
 
-                    { data: { id: 'node_3', name: 'node_3', cpu: '4', memory: '8', storage: '200', image: 'ubuntu' } },
+                    { data: { id: 'node_3', name: 'node_3', cpu: '1', memory: '2', storage: '50', image: '1' } },
 
-                    { data: { id: 'node_4', name: 'node_4', cpu: '1', memory: '2', storage: '50', image: 'ubuntu' } },
+                    { data: { id: 'node_4', name: 'node_4', cpu: '1', memory: '2', storage: '50', image: '1' } },
 
-                    { data: { id: 'node_5', name: 'node_5', cpu: '2', memory: '4', storage: '100', image: 'ubuntu' } },
+                    { data: { id: 'node_5', name: 'node_5', cpu: '1', memory: '2', storage: '50', image: '1' } },
 
-                    { data: { id: 'link_id_1_2', source: 'node_1', target: 'node_2' } },
+                    { data: { id: 'node_6', name: 'node_6', cpu: '1', memory: '2', storage: '50', image: '1' } },
 
-                    { data: { id: 'link_id_1_3', source: 'node_1', target: 'node_3' } },
+                    { data: { id: 'node_7', name: 'node_7', cpu: '1', memory: '2', storage: '50', image: '1' } },
 
-                    { data: { id: 'link_id_1_4', source: 'node_1', target: 'node_4' } },
+                    { data: { id: 'node_8', name: 'node_8', cpu: '1', memory: '2', storage: '50', image: '1' } },
 
-                    { data: { id: 'link_id_1_5', source: 'node_1', target: 'node_5' } },
+                    { data: { id: 'node_9', name: 'node_9', cpu: '1', memory: '2', storage: '50', image: '1' } },
 
-                    { data: { id: 'link_id_2_3', source: 'node_2', target: 'node_3' } },
+                    { data: { id: 'node_10', name: 'node_10', cpu: '1', memory: '2', storage: '50', image: '1' } },
 
-                    { data: { id: 'link_id_2_4', source: 'node_2', target: 'node_4' } },
+                    { data: { id: 'node_11', name: 'node_11', cpu: '1', memory: '2', storage: '50', image: '1' } },
 
-                    { data: { id: 'link_id_3_5', source: 'node_3', target: 'node_5' } },
+                    { data: { id: 'node_12', name: 'node_12', cpu: '1', memory: '2', storage: '50', image: '1' } },
 
-                    { data: { id: 'link_id_4_5', source: 'node_4', target: 'node_5' } },
+                    { data: { id: 'node_13', name: 'node_13', cpu: '1', memory: '2', storage: '50', image: '1' } },
+
+                    { data: { id: 'node_14', name: 'node_14', cpu: '1', memory: '2', storage: '50', image: '1' } },
+
+                    { data: { id: 'node_15', name: 'node_15', cpu: '1', memory: '2', storage: '50', image: '1' } },
+
+                    { data: { id: 'nd1_nd2', source: 'node_1', target: 'node_2' } },
+
+                    { data: { id: 'nd1_nd3', source: 'node_1', target: 'node_3' } },
+
+                    { data: { id: 'nd2_nd4', source: 'node_2', target: 'node_4' } },
+
+                    { data: { id: 'nd2_nd5', source: 'node_2', target: 'node_5' } },
+
+                    { data: { id: 'nd3_nd6', source: 'node_3', target: 'node_6' } },
+
+                    { data: { id: 'nd3_nd7', source: 'node_3', target: 'node_7' } },
+
+                    { data: { id: 'nd4_nd8', source: 'node_4', target: 'node_8' } },
+
+                    { data: { id: 'nd4_nd9', source: 'node_4', target: 'node_9' } },
+
+                    { data: { id: 'nd5_nd10', source: 'node_5', target: 'node_10' } },
+
+                    { data: { id: 'nd5_nd11', source: 'node_5', target: 'node_11' } },
+
+                    { data: { id: 'nd6_nd12', source: 'node_6', target: 'node_12' } },
+
+                    { data: { id: 'nd6_nd13', source: 'node_6', target: 'node_13' } },
+
+                    { data: { id: 'nd7_nd14', source: 'node_7', target: 'node_14' } },
+
+                    { data: { id: 'nd7_nd15', source: 'node_7', target: 'node_15' } },
 
 	],
 	style: [

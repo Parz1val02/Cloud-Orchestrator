@@ -79,9 +79,9 @@ var templatesCmd = &cobra.Command{
 				fmt.Printf("\n---\nQuitting!\n")
 			} else {
 				fmt.Printf("\n---\nYou chose %s!\n", m.Choices[m.Cursor])
-				fmt.Print("\n---\nSelect a template to execute CRUD operation on\n")
 				switch m.Cursor {
 				case 0:
+					fmt.Print("\n---\nSelect a template to execute CRUD operation on\n")
 					listTemplates()
 				case 1:
 					crud.CreateTemplate() // funcion crear plantilla
