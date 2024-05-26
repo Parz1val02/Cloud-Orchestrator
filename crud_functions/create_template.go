@@ -549,8 +549,11 @@ func graphTemplateTopology(template Template) {
 		}
 	],
 	layout: {
-		name: 'grid',
-		rows: 1
+		name: 'cose', // Layout for better node distribution
+		fit: true, // Whether to fit the viewport to the graph
+		padding: 30, // Padding around the graph
+		animate: true, // Whether to animate the layout
+		animationDuration: 1000 // Duration of animation in ms if enabled
 	}
 });
 
