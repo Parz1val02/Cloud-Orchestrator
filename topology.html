@@ -40,8 +40,8 @@
 					<h1 class="mb-4">Network Topology</h1>
 					<div id="template-details" class="text-left">
 					
-			<strong>Template Name:</strong> ga<br>
-			<strong>Description:</strong> ga<br>
+			<strong>Template Name:</strong> Arbol binario<br>
+			<strong>Description:</strong> dfsgsadf<br>
 			<strong>Availability Zone:</strong> 1<br>
 			
 					</div>
@@ -64,35 +64,19 @@
 					container: document.getElementById('cy'),
 					elements: [
 
-                    { data: { id: 'node_1', name: 'node_1', cpu: '1', memory: '2', storage: '50', image: '1' } },
+                    { data: { id: 'node_1', name: 'node_1', cpu: '1', memory: '2', storage: '50', image: 'Arch' } },
 
-                    { data: { id: 'node_2', name: 'node_2', cpu: '1', memory: '2', storage: '50', image: '1' } },
+                    { data: { id: 'node_2', name: 'node_2', cpu: '1', memory: '2', storage: '50', image: 'Ubuntu' } },
 
-                    { data: { id: 'node_3', name: 'node_3', cpu: '1', memory: '2', storage: '50', image: '1' } },
+                    { data: { id: 'node_3', name: 'node_3', cpu: '1', memory: '2', storage: '50', image: 'FreeBSD' } },
 
-                    { data: { id: 'node_4', name: 'node_4', cpu: '1', memory: '2', storage: '50', image: '1' } },
+                    { data: { id: 'node_4', name: 'node_4', cpu: '1', memory: '2', storage: '50', image: 'ga' } },
 
-                    { data: { id: 'node_5', name: 'node_5', cpu: '1', memory: '2', storage: '50', image: '1' } },
+                    { data: { id: 'node_5', name: 'node_5', cpu: '1', memory: '2', storage: '50', image: 'ga' } },
 
-                    { data: { id: 'node_6', name: 'node_6', cpu: '1', memory: '2', storage: '50', image: '1' } },
+                    { data: { id: 'node_6', name: 'node_6', cpu: '1', memory: '2', storage: '50', image: 'ga' } },
 
-                    { data: { id: 'node_7', name: 'node_7', cpu: '1', memory: '2', storage: '50', image: '1' } },
-
-                    { data: { id: 'node_8', name: 'node_8', cpu: '1', memory: '2', storage: '50', image: '1' } },
-
-                    { data: { id: 'node_9', name: 'node_9', cpu: '1', memory: '2', storage: '50', image: '1' } },
-
-                    { data: { id: 'node_10', name: 'node_10', cpu: '1', memory: '2', storage: '50', image: '1' } },
-
-                    { data: { id: 'node_11', name: 'node_11', cpu: '1', memory: '2', storage: '50', image: '1' } },
-
-                    { data: { id: 'node_12', name: 'node_12', cpu: '1', memory: '2', storage: '50', image: '1' } },
-
-                    { data: { id: 'node_13', name: 'node_13', cpu: '1', memory: '2', storage: '50', image: '1' } },
-
-                    { data: { id: 'node_14', name: 'node_14', cpu: '1', memory: '2', storage: '50', image: '1' } },
-
-                    { data: { id: 'node_15', name: 'node_15', cpu: '1', memory: '2', storage: '50', image: '1' } },
+                    { data: { id: 'node_7', name: 'node_7', cpu: '1', memory: '2', storage: '50', image: 'ga' } },
 
                     { data: { id: 'nd1_nd2', source: 'node_1', target: 'node_2' } },
 
@@ -105,22 +89,6 @@
                     { data: { id: 'nd3_nd6', source: 'node_3', target: 'node_6' } },
 
                     { data: { id: 'nd3_nd7', source: 'node_3', target: 'node_7' } },
-
-                    { data: { id: 'nd4_nd8', source: 'node_4', target: 'node_8' } },
-
-                    { data: { id: 'nd4_nd9', source: 'node_4', target: 'node_9' } },
-
-                    { data: { id: 'nd5_nd10', source: 'node_5', target: 'node_10' } },
-
-                    { data: { id: 'nd5_nd11', source: 'node_5', target: 'node_11' } },
-
-                    { data: { id: 'nd6_nd12', source: 'node_6', target: 'node_12' } },
-
-                    { data: { id: 'nd6_nd13', source: 'node_6', target: 'node_13' } },
-
-                    { data: { id: 'nd7_nd14', source: 'node_7', target: 'node_14' } },
-
-                    { data: { id: 'nd7_nd15', source: 'node_7', target: 'node_15' } },
 
 	],
 	style: [
@@ -147,10 +115,10 @@
 	],
 	layout: {
 		name: 'cose', // Layout for better node distribution
-                    fit: true, // Whether to fit the viewport to the graph
-                    padding: 30, // Padding around the graph
-                    animate: true, // Whether to animate the layout
-                    animationDuration: 1000 // Duration of animation in ms if enabled
+		fit: true, // Whether to fit the viewport to the graph
+		padding: 30, // Padding around the graph
+		animate: true, // Whether to animate the layout
+		animationDuration: 1000 // Duration of animation in ms if enabled
 	}
 });
 

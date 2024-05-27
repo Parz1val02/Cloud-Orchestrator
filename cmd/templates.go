@@ -51,6 +51,18 @@ func listTemplates() {
 				switch m.Cursor {
 				case 0:
 					tabs.MainTabs(templateId)
+				case 2:
+					error := crud.DeleteTemplate(templateId)
+					if error != nil {
+						fmt.Println("Error:", err)
+						os.Exit(1)
+					}
+				case 4:
+					error := crud.ExportTemplate(templateId)
+					if error != nil {
+						fmt.Println("Error:", err)
+						os.Exit(1)
+					}
 				default:
 
 				}
@@ -84,7 +96,9 @@ var templatesCmd = &cobra.Command{
 					fmt.Print("\n---\nSelect a template to execute CRUD operation on\n")
 					listTemplates()
 				case 1:
-					crud.CreateTemplate() // funcion crear plantilla
+					crud.CreateTemplate()
+				case 2:
+					crud.ImportTemplate()
 				default:
 
 				}
