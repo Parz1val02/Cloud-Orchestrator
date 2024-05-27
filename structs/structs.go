@@ -80,6 +80,6 @@ type ResponseCreate struct {
 	Result     string `json:"result"`
 }
 type NormalResponse struct {
-	Msg        string `json:"msg"`
-	Result     string `json:"result"`
+	Msg    string `json:"msg"`
+	Result string `json:"result"`
 }

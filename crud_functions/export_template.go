@@ -49,7 +49,7 @@ func ExportTemplate(templateId string) error {
 		reader := bufio.NewReader(os.Stdin)
 		var filePath string
 		for {
-			fmt.Print("Enter the absolute path or file name to save the export (must be a .json file): ")
+			fmt.Print("Enter the absolute path or file name to export the template (must be a .json file): ")
 			filePath, _ = reader.ReadString('\n')
 			filePath = strings.TrimSpace(filePath)
 
