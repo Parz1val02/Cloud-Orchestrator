@@ -103,14 +103,16 @@ func MainTabs(templateId string) {
 		os.Exit(1)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		// err = fmt.Errorf("Unexpected status code: %d", resp.StatusCode)
-		fmt.Printf("Unexpected status code: %d\n", resp.StatusCode)
-	}
+	var jsonresp structs.NormalResponse
 	err = json.NewDecoder(resp.Body).Decode(&templateById)
 	if err != nil {
-		// err = fmt.Errorf("Error decoding response body: %v", err)
 		fmt.Printf("Error decoding response body: %v\n", err)
+		os.Exit(1)
+	}
+	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("Unexpected status code: %d\n", resp.StatusCode)
+		fmt.Printf("Error: %s", jsonresp.Msg)
+		os.Exit(1)
 	}
 
 	//templateFile, err := os.Open("cloud.templatebyid.json")
