@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -12,15 +13,23 @@ import (
 	"time"
 )
 
+type Image struct {
+	ImageID     string `json:"image_id"`
+	Name        string `json:"name"`
+	Version     string `json:"version"`
+	Description string `json:"description"`
+	ImageURL    string `json:"image_url"`
+}
+
 type Node struct {
-	NodeID         string `json:"node_id"`
-	Name           string `json:"name"`
-	AccessProtocol string `json:"access_protocol"`
-	CPU            int    `json:"cpu"`
-	Image          string `json:"image"`
-	Memory         int    `json:"memory"`
-	SecurityRules  []int  `json:"security_rules"`
-	Storage        int    `json:"storage"`
+	NodeID         string  `json:"node_id"`
+	Name           string  `json:"name"`
+	AccessProtocol string  `json:"access_protocol"`
+	CPU            int     `json:"cpu"`
+	Image          string  `json:"image"`
+	Memory         float32 `json:"memory"`
+	SecurityRules  []int   `json:"security_rules"`
+	Storage        float32 `json:"storage"`
 }
 
 type Link struct {
@@ -292,29 +301,86 @@ func createStarTopology() Topology {
 }
 
 type Flavor struct {
-	Name    string
-	CPU     int
-	Memory  int // en GB
-	Storage int // en GB
+	FlavorID string
+	Name     string
+	CPU      int
+	Memory   float32 // en GB
+	Storage  float32 // en GB
 }
 
+/*
 var flavors = []Flavor{
 	{Name: "Small", CPU: 1, Memory: 2, Storage: 50},
 	{Name: "Medium", CPU: 2, Memory: 4, Storage: 100},
 	{Name: "Large", CPU: 4, Memory: 8, Storage: 200},
 	// Agrega más flavors según sea necesario
+}*/
+
+func selectImage(nodeName string) Image {
+	var images []Image
+	images, err := fetchImages()
+	if err != nil {
+		fmt.Printf("Error fetching images: %v\n", err)
+	}
+
+	// Mostrar opciones de imágenes al usuario
+	fmt.Printf("Select an image for %s:\n", nodeName)
+	for i, img := range images {
+		fmt.Printf("%d. %s %s\n", i+1, img.Name, img.Version)
+	}
+	// Solicitar al usuario que ingrese el número correspondiente a la imagen elegida
+	var choice int
+	for {
+		choice = promptInt("Enter the number of the image: ")
+		if choice > 0 && choice <= len(images) {
+			break
+		}
+		fmt.Println("Invalid choice. Please enter a valid number.")
+	}
+	// Devolver la imagen seleccionada
+	return images[choice-1]
+}
+func fetchImages() ([]Image, error) {
+	url := "http://localhost:5000/templates/images"
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching images: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading response body: %w", err)
+	}
+
+	var result struct {
+		Result string  `json:"result"`
+		Images []Image `json:"images"`
+	}
+
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("error unmarshalling response: %w", err)
+	}
+
+	return result.Images, nil
 }
 
 func selectFlavor(nodeName string) Flavor {
-	/*flavors, err := fetchFlavors()
+	var flavors []Flavor
+	flavors, err := fetchFlavors()
 	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-	}*/
+		fmt.Printf("Error flavors: %v\n", err)
+	}
 
 	// Mostrar opciones de flavors al usuario
 	fmt.Printf("Select a flavor for %s:\n", nodeName)
 	for i, flavor := range flavors {
-		fmt.Printf("%d. %s (CPU: %d, Memory: %dGB, Storage: %dGB)\n", i+1, flavor.Name, flavor.CPU, flavor.Memory, flavor.Storage)
+		fmt.Printf("%d. %s (CPU: %d, Memory: %.1fGB, Storage: %.1fGB)\n", i+1, flavor.Name, flavor.CPU, flavor.Memory, flavor.Storage)
 	}
 	// Solicitar al usuario que ingrese el número correspondiente al flavor elegido
 	var choice int
@@ -330,22 +396,33 @@ func selectFlavor(nodeName string) Flavor {
 }
 
 func fetchFlavors() ([]Flavor, error) {
-	url := "http://localhost:5000/flavors"
-	var flavors []Flavor
-	// Realizar solicitud HTTP GET al API
+	url := "http://localhost:5000/templates/flavors"
+
 	resp, err := http.Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("error al hacer la solicitud HTTP: %v", err)
+		return nil, fmt.Errorf("error fetching flavors: %w", err)
 	}
 	defer resp.Body.Close()
 
-	// Decodificar la respuesta JSON en la estructura de datos Flavor
-	err = json.NewDecoder(resp.Body).Decode(&flavors)
-	if err != nil {
-		return nil, fmt.Errorf("error al decodificar JSON: %v", err)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
-	return flavors, nil
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading response body: %w", err)
+	}
+
+	var result struct {
+		Result  string   `json:"result"`
+		Flavors []Flavor `json:"flavors"`
+	}
+
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("error unmarshalling response: %w", err)
+	}
+
+	return result.Flavors, nil
 }
 
 func createNodes(numNodes int) []Node {
@@ -353,12 +430,13 @@ func createNodes(numNodes int) []Node {
 	for i := 0; i < numNodes; i++ {
 		nodeName := fmt.Sprintf("node_%d", i+1)
 		flavor := selectFlavor(nodeName)
+		image := selectImage(nodeName)
 		nodes[i] = Node{
 			NodeID:         fmt.Sprintf("nd%d", i+1),
 			Name:           nodeName,
 			AccessProtocol: "SSH", // Supongamos que siempre hay una regla de seguridad SSH por defecto
 			CPU:            flavor.CPU,
-			Image:          promptString(fmt.Sprintf("Enter Image for %s: ", nodeName)),
+			Image:          fmt.Sprintf("%s %s", image.Name, image.Version),
 			Memory:         flavor.Memory,
 			SecurityRules:  []int{22}, // Supongamos que siempre hay una regla de seguridad SSH por defecto
 			Storage:        flavor.Storage,
@@ -422,7 +500,7 @@ func printTopologyTable(topology Topology) {
 	fmt.Println("Nodes:")
 	fmt.Printf("%-10s %-10s %-10s %-15s %-15s %-15s\n", "NodeID", "Name", "CPU", "Memory(GB)", "Storage(GB)", "Links")
 	for _, node := range topology.Nodes {
-		fmt.Printf("%-10s %-10s %-10d %-15d %-15d", node.NodeID, node.Name, node.CPU, node.Memory, node.Storage)
+		fmt.Printf("%-10s %-10s %-10d %-15.1f %-15.1f", node.NodeID, node.Name, node.CPU, node.Memory, node.Storage)
 		linkedNodes := []string{}
 		for _, link := range topology.Links {
 			if link.Source == node.Name || link.Target == node.Name {
@@ -514,7 +592,7 @@ func graphTemplateTopology(template Template) {
 `
 	for _, node := range template.Topology.Nodes {
 		htmlContent += fmt.Sprintf(`
-                    { data: { id: '%s', name: '%s', cpu: '%d', memory: '%d', storage: '%d', image: '%s' } },
+                    { data: { id: '%s', name: '%s', cpu: '%d', memory: '%.1f', storage: '%.1f', image: '%s' } },
 `, node.Name, node.Name, node.CPU, node.Memory, node.Storage, node.Image)
 	}
 
@@ -614,10 +692,155 @@ func openBrowser(url string) {
 	}
 }
 
+func selectTopologyType() string {
+	// Mostrar opciones de topology type al usuario
+	topology_type := []string{"predefined", "custom"}
+
+	for i, name := range topology_type {
+		fmt.Printf("%d. %s\n", i+1, name)
+	}
+	// Solicitar al usuario que ingrese el número correspondiente al topologytype elegido
+	var choice int
+	for {
+		choice = promptInt("Enter the number of the chosen topology type: ")
+		if choice > 0 && choice <= len(topology_type) {
+			break
+		}
+		fmt.Println("Invalid choice. Please enter a valid number.")
+	}
+	// Devolver el flavor seleccionado
+	return topology_type[choice-1]
+}
+
+/*
+func selectAvailabilityZone() AvailabilityZone {
+	var availabilityZones []AvailabilityZone
+	availabilityZones, err := fetchAvailabilityZone()
+	if err != nil {
+		fmt.Printf("Error fetching availabilityZones: %v\n", err)
+	}
+
+	// Mostrar opciones de imágenes al usuario
+	fmt.Printf("Select an availability zone:\n")
+	for i, az := range availabilityZones {
+		fmt.Printf("%d. %s\n", i+1, az.Name)
+	}
+	// Solicitar al usuario que ingrese el número correspondiente a la imagen elegida
+	var choice int
+	for {
+		choice = promptInt("Enter the number of the image: ")
+		if choice > 0 && choice <= len(availabilityZones) {
+			break
+		}
+		fmt.Println("Invalid choice. Please enter a valid number.")
+	}
+	// Devolver la imagen seleccionada
+	return availabilityZones[choice-1]
+}
+func fetchAvailabilityZone() ([]AvailabilityZone, error) {
+	url := "http://localhost:5000/templates/availabilityZones"
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching availabilityZones: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading response body: %w", err)
+	}
+
+	var result struct {
+		Result            string             `json:"result"`
+		AvailabilityZones []AvailabilityZone `json:"availability_zones"`
+	}
+
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("error unmarshalling response: %w", err)
+	}
+
+	return result.AvailabilityZones, nil
+}
+*/
+
+// Estructura para los servidores en una zona de disponibilidad
+type Server struct {
+	Name string `json:"name"`
+}
+
+// Estructura para las zonas de disponibilidad
+type AvailabilityZone struct {
+	ID      string   `json:"id"`
+	Name    string   `json:"name"`
+	Servers []Server `json:"servers"`
+}
+
+// Crear 3 zonas de disponibilidad con diferentes combinaciones de servidores
+var availabilityZones = []AvailabilityZone{
+	{
+		ID:   "zone_1",
+		Name: "Zone 1",
+		Servers: []Server{
+			{Name: "Worker1"},
+			{Name: "Worker2"},
+			{Name: "Worker3"},
+		},
+	},
+	{
+		ID:   "zone_2",
+		Name: "Zone 2",
+		Servers: []Server{
+			{Name: "Worker1"},
+			{Name: "Worker3"},
+		},
+	},
+	{
+		ID:   "zone_3",
+		Name: "Zone 3",
+		Servers: []Server{
+			{Name: "Worker2"},
+			{Name: "Worker3"},
+		},
+	},
+}
+
+// Función para solicitar al usuario que seleccione una zona de disponibilidad
+func selectorAvailabilityZone() string {
+	fmt.Println("Select an Availability Zone:")
+
+	for i, zone := range availabilityZones {
+		fmt.Printf("%d. %s (ID: %s)\n", i+1, zone.Name, zone.ID)
+		fmt.Println("Servers:")
+		for _, server := range zone.Servers {
+			fmt.Printf("  - %s\n", server.Name)
+		}
+	}
+
+	var choice int
+	for {
+		fmt.Print("Enter the number of the availability zone: ")
+		fmt.Scan(&choice)
+		if choice > 0 && choice <= len(availabilityZones) {
+			break
+		}
+		fmt.Println("Invalid choice. Please enter a valid number.")
+	}
+
+	return availabilityZones[choice-1].ID
+}
+
 func CreateTemplate() {
+
 	name := promptString("Enter template name: ")
 	description := promptString("Enter template description: ")
-	topologyType := promptString("Do you want to create a predefined or custom topology? (predefined/custom): ")
+	//topologyType := promptString("Do you want to create a predefined or custom topology? (predefined/custom): ")
+	fmt.Println("Do you want to create a predefined or custom topology?:")
+	topologyType := selectTopologyType()
 
 	var topology Topology
 	if topologyType == "predefined" {
@@ -631,7 +854,8 @@ func CreateTemplate() {
 	fmt.Printf("Nodes: %+v\n", topology.Nodes)
 	fmt.Printf("Links: %+v\n", topology.Links)
 
-	availabilityZone := promptString("Enter availability zone: ")
+	availabilityZone := selectorAvailabilityZone()
+
 	template := Template{
 		CreatedAt:        time.Now().UTC(),
 		AvailabilityZone: availabilityZone,
