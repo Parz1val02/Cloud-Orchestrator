@@ -203,12 +203,21 @@ def graph_plantilla(template_id):
     )
 
 
+
+def serialize_document_not_template(doc):
+    for key, value in doc.items():
+        if isinstance(value, ObjectId):
+            #  Convertir ObjectId a cadena de texto
+            doc[key] = str(value)
+            doc["id"] = doc.pop(key)
+    return doc
+
 # Endpoint para listar todos los flavors
 @app.route('/templates/flavors', methods=['GET'])
 def listar_sabores():
     db = client.cloud
     collection = db.flavors
-    flavors = [serialize_document(flavor) for flavor in collection.find()]
+    flavors = [serialize_document_not_template(flavor) for flavor in collection.find()]
     if flavors:
         return jsonify({'result': 'success', 'flavors': flavors})
     else:
@@ -219,7 +228,7 @@ def listar_sabores():
 def listar_images():
     db = client.cloud
     collection = db.images
-    images = [serialize_document(image) for image in collection.find()]
+    images = [serialize_document_not_template(image) for image in collection.find()]
     if images:
         return jsonify({'result': 'success', 'images': images})
     else:
