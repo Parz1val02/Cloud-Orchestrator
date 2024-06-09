@@ -31,14 +31,14 @@ type ListTemplateById struct {
 				Target string `json:"target"`
 			} `json:"links"`
 			Nodes []struct {
-				NodeID         string `json:"node_id"`
-				Name           string `json:"name"`
-				AccessProtocol string `json:"access_protocol"`
-				CPU            int    `json:"cpu"`
-				Image          string `json:"image"`
-				Memory         int    `json:"memory"`
-				SecurityRules  []int  `json:"security_rules"`
-				Storage        int    `json:"storage"`
+				NodeID         string  `json:"node_id"`
+				Name           string  `json:"name"`
+				AccessProtocol string  `json:"access_protocol"`
+				CPU            int     `json:"cpu"`
+				Image          string  `json:"image"`
+				Memory         float32 `json:"memory"`
+				SecurityRules  []int   `json:"security_rules"`
+				Storage        float32 `json:"storage"`
 			} `json:"nodes"`
 		} `json:"topology"`
 		UserID       string `json:"user_id"`
@@ -60,14 +60,14 @@ type NormalTemplate struct {
 			Target string `json:"target"`
 		} `json:"links"`
 		Nodes []struct {
-			NodeID         string `json:"node_id"`
-			Name           string `json:"name"`
-			AccessProtocol string `json:"access_protocol"`
-			CPU            int    `json:"cpu"`
-			Image          string `json:"image"`
-			Memory         int    `json:"memory"`
-			SecurityRules  []int  `json:"security_rules"`
-			Storage        int    `json:"storage"`
+			NodeID         string  `json:"node_id"`
+			Name           string  `json:"name"`
+			AccessProtocol string  `json:"access_protocol"`
+			CPU            int     `json:"cpu"`
+			Image          string  `json:"image"`
+			Memory         float32 `json:"memory"`
+			SecurityRules  []int   `json:"security_rules"`
+			Storage        float32 `json:"storage"`
 		} `json:"nodes"`
 	} `json:"topology"`
 	UserID       string `json:"user_id"`

@@ -138,7 +138,7 @@ func MainTabs(templateId string) {
 		nodes := table.NewWriter()
 		nodes.AppendHeader(table.Row{"ID", "Name", "Image", "Access Protocol", "CPU", "Memory", "Storage"})
 		for _, v := range templateById.Template.Topology.Nodes {
-			nodes.AppendRow(table.Row{v.NodeID, v.Name, v.Image, v.AccessProtocol, strconv.Itoa(v.CPU), strconv.Itoa(v.Memory), strconv.Itoa(v.Storage)})
+			nodes.AppendRow(table.Row{v.NodeID, v.Name, v.Image, v.AccessProtocol, strconv.Itoa(v.CPU), strconv.FormatFloat(float64(v.Memory), 'f', 1, 32), strconv.FormatFloat(float64(v.Storage), 'f', 1, 32)})
 		}
 		links := table.NewWriter()
 		links.AppendHeader(table.Row{"ID", "Source", "Target"})
