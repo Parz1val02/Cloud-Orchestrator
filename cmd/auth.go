@@ -54,10 +54,18 @@ func login(username, password string) (User, error) {
 	var data struct {
 		User User `json:"user"`
 	}
+	var error struct {
+		ErrorMsg string `json:"error"`
+	}
 
 	var user User
 	if resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf("Unexpected status code: %d", resp.StatusCode)
+		err = json.NewDecoder(resp.Body).Decode(&error)
+		if err != nil {
+			err = fmt.Errorf("Error decoding response body: %v", err)
+			return user, err
+		}
+		err = fmt.Errorf("Unexpected status code: %d, Error: %s", resp.StatusCode, error.ErrorMsg)
 		return user, err
 	}
 	err = json.NewDecoder(resp.Body).Decode(&data)
