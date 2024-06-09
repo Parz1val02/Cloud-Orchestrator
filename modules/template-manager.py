@@ -6,24 +6,24 @@ app = Flask(__name__)
 
 # Configuración de la conexión a MongoDB
 client = MongoClient("localhost", 27017)
-db = client.cloud
-collection = db.templates
+
 
 
 # Función para serializar documentos MongoDB / necesario para ser enviados como respuesta del endpoint / working
 def serialize_document(doc):
-    doc["template_id"] = str(doc.pop("_id"))
     for key, value in doc.items():
         if isinstance(value, ObjectId):
             #  Convertir ObjectId a cadena de texto
             doc[key] = str(value)
+            doc["template_id"] = doc.pop(key)
     return doc
 
 
 # Endpoint para listar todas las plantillas / working
 @app.route("/templates", methods=["GET"])
 def listar_plantillas():
-
+    db = client.cloud
+    collection = db.templates
     query = {}
     fields = {
         "name": 1,
@@ -80,6 +80,8 @@ def listar_plantillas():
 # Endpoint para buscar una plantilla por ID / working
 @app.route("/templates/<string:template_id>", methods=["GET"])
 def buscar_plantilla(template_id):
+    db = client.cloud
+    collection = db.templates
     try:
         template = collection.find_one({"_id": ObjectId(template_id)})
         if template:
@@ -106,6 +108,8 @@ def buscar_plantilla(template_id):
 # Endpoint para crear una nueva plantilla / working
 @app.route("/templates", methods=["POST"])
 def crear_plantilla():
+    db = client.cloud
+    collection = db.templates
     new_template = request.json
     result = collection.insert_one(new_template)
     return jsonify(
@@ -120,6 +124,8 @@ def crear_plantilla():
 # Endpoint para editar una plantilla por ID / working
 @app.route("/templates/<string:template_id>", methods=["PUT"])
 def editar_plantilla(template_id):
+    db = client.cloud
+    collection = db.templates
     plantilla_actualizada = request.json
 
     try:
@@ -153,6 +159,8 @@ def editar_plantilla(template_id):
 # Endpoint para eliminar una plantilla por ID / working
 @app.route("/templates/<string:template_id>", methods=["DELETE"])
 def eliminar_plantilla(template_id):
+    db = client.cloud
+    collection = db.templates
     try:
         result = collection.delete_one({"_id": ObjectId(template_id)})
         if result.deleted_count == 1:
@@ -194,6 +202,28 @@ def graph_plantilla(template_id):
         }
     )
 
+
+# Endpoint para listar todos los flavors
+@app.route('/templates/flavors', methods=['GET'])
+def listar_sabores():
+    db = client.cloud
+    collection = db.flavors
+    flavors = [serialize_document(flavor) for flavor in collection.find()]
+    if flavors:
+        return jsonify({'result': 'success', 'flavors': flavors})
+    else:
+        return jsonify({'result': 'success', 'msg': 'No existen sabores disponibles'})
+
+# Endpoint para listar todos los images
+@app.route('/templates/images', methods=['GET'])
+def listar_images():
+    db = client.cloud
+    collection = db.images
+    images = [serialize_document(image) for image in collection.find()]
+    if images:
+        return jsonify({'result': 'success', 'images': images})
+    else:
+        return jsonify({'result': 'success', 'msg': 'No existen sabores disponibles'})
 
 if __name__ == "__main__":
     app.run(debug=True)
