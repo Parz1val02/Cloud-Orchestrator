@@ -4,10 +4,10 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	//"fmt"
+//"fmt"
 
-	//"github.com/spf13/cobra"
-	//"github.com/spf13/viper"
+//"github.com/spf13/cobra"
+//"github.com/spf13/viper"
 )
 
 // usersCmd represents the users command
