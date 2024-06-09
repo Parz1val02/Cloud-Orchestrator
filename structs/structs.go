@@ -74,11 +74,6 @@ type NormalTemplate struct {
 	VlanID       string `json:"vlan_id"`
 	TopologyType string `json:"topology_type"`
 }
-type ResponseCreate struct {
-	TemplateID string `json:"template_id"`
-	Msg        string `json:"msg"`
-	Result     string `json:"result"`
-}
 type NormalResponse struct {
 	Msg    string `json:"msg"`
 	Result string `json:"result"`

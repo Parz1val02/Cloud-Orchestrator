@@ -150,19 +150,15 @@ func ImportTemplate(userId, token string) {
 		os.Exit(1)
 	}
 	defer resp.Body.Close()
-	var jsonresp structs.ResponseCreate
-
-	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("Unexpected status code: %d", resp.StatusCode)
-		os.Exit(1)
-	}
+	var jsonresp structs.NormalResponse
 	err = json.NewDecoder(resp.Body).Decode(&jsonresp)
 	if err != nil {
 		fmt.Printf("Error decoding response body: %v", err)
 		os.Exit(1)
 	}
-
-	if jsonresp.Result == "success" {
-		fmt.Printf("Successfully imported and created tempalte with id %s\n", jsonresp.TemplateID)
+	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("Unexpected status code: %d, Error: %s\n", resp.StatusCode, jsonresp.Msg)
+		os.Exit(1)
 	}
+	fmt.Printf("%s\n", jsonresp.Msg)
 }

@@ -61,6 +61,7 @@ func (m Model) View() string {
 func MainTable(token string) (string, error) {
 	serverPort := 4444
 	var templates structs.ListTemplates
+	var jsonresp structs.NormalResponse
 	requestURL := fmt.Sprintf("http://localhost:%d/templateservice/templates", serverPort)
 
 	client := &http.Client{}
@@ -73,18 +74,21 @@ func MainTable(token string) (string, error) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Printf("error making http request: %s\n", err)
+		fmt.Printf("Error making http request: %s\n", err)
 		os.Exit(1)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		// err = fmt.Errorf("Unexpected status code: %d", resp.StatusCode)
-		fmt.Printf("Unexpected status code: %d\n", resp.StatusCode)
+		err = json.NewDecoder(resp.Body).Decode(&jsonresp)
+		if err != nil {
+			return "", fmt.Errorf("Error decoding response body: %v\n", err)
+		}
+		return "", fmt.Errorf("Unexpected status code: %d, Error: %s\n", resp.StatusCode, jsonresp.Msg)
 	}
 	err = json.NewDecoder(resp.Body).Decode(&templates)
 	if err != nil {
-		// err = fmt.Errorf("Error decoding response body: %v", err)
-		fmt.Printf("Error decoding response body: %v\n", err)
+		err = fmt.Errorf("Error decoding response body: %v", err)
+		return "", err
 	}
 
 	//templateFile, err := os.Open("cloud.templates.json")
@@ -96,6 +100,7 @@ func MainTable(token string) (string, error) {
 	//if err = json.NewDecoder(templateFile).Decode(&templates); err != nil {
 	//	fmt.Println("Error parsing json: ", err.Error())
 	//}
+
 	columns := []table.Column{
 		{Title: "ID", Width: 30},
 		{Title: "Name", Width: 30},
@@ -104,18 +109,7 @@ func MainTable(token string) (string, error) {
 		{Title: "Topology Type", Width: 20},
 	}
 
-	rows := []table.Row{
-		{"1", "Tokyo", "Japan", "37,274,000", "ga"},
-		{"2", "Delhi", "India", "32,065,760", "ga"},
-		{"3", "Shanghai", "China", "28,516,904", "ga"},
-		{"4", "Dhaka", "Bangladesh", "22,478,116", "ga"},
-		{"5", "São Paulo", "Brazil", "22,429,800", "ga"},
-		{"6", "Mexico City", "Mexico", "22,085,140", "ga"},
-		{"7", "Cairo", "Egypt", "21,750,020", "ga"},
-		{"8", "Beijing", "China", "21,333,332", "ga"},
-		{"9", "Mumbai", "India", "20,961,472", "ga"},
-		{"10", "Osaka", "Japan", "19,059,856", "ga"},
-	}
+	rows := []table.Row{}
 	if templates.Result == "success" {
 		for _, v := range templates.Templates {
 			var row []string
@@ -147,8 +141,7 @@ func MainTable(token string) (string, error) {
 	p := tea.NewProgram(Model{t, false})
 	m, err := p.Run()
 	if err != nil {
-		fmt.Println("Error running program:", err)
-		os.Exit(1)
+		return "", err
 	}
 	if m, ok := m.(Model); ok && m.Table.SelectedRow()[0] != "" {
 		if m.Quit {

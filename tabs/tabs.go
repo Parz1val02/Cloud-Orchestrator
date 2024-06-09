@@ -96,6 +96,7 @@ func (m model) View() string {
 func MainTabs(templateId, token string) {
 	serverPort := 4444
 	var templateById structs.ListTemplateById
+	var jsonresp structs.NormalResponse
 	requestURL := fmt.Sprintf("http://localhost:%d/templateservice/templates/%s", serverPort, templateId)
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", requestURL, nil)
@@ -111,15 +112,18 @@ func MainTabs(templateId, token string) {
 	}
 
 	defer resp.Body.Close()
-	var jsonresp structs.NormalResponse
-	err = json.NewDecoder(resp.Body).Decode(&templateById)
-	if err != nil {
-		fmt.Printf("Error decoding response body: %v\n", err)
+	if resp.StatusCode != http.StatusOK {
+		err = json.NewDecoder(resp.Body).Decode(&jsonresp)
+		if err != nil {
+			fmt.Printf("Error decoding response body: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Unexpected status code: %d, Error: %s\n", resp.StatusCode, jsonresp.Msg)
 		os.Exit(1)
 	}
-	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("Unexpected status code: %d\n", resp.StatusCode)
-		fmt.Printf("Error: %s", jsonresp.Msg)
+	err = json.NewDecoder(resp.Body).Decode(&templateById)
+	if err != nil {
+		fmt.Printf("Error decoding response body: %v", err)
 		os.Exit(1)
 	}
 

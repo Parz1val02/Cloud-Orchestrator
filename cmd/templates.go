@@ -64,6 +64,7 @@ func listTemplates() {
 								fmt.Println("Error:", err)
 								os.Exit(1)
 							}
+							break
 						}
 					case 4:
 						error := crud.ExportTemplate(templateId, token)
