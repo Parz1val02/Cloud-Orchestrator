@@ -93,15 +93,23 @@ func (m model) View() string {
 	return docStyle.Render(doc.String())
 }
 
-func MainTabs(templateId string) {
-	serverPort := 5000
+func MainTabs(templateId, token string) {
+	serverPort := 4444
 	var templateById structs.ListTemplateById
-	requestURL := fmt.Sprintf("http://localhost:%d/templates/%s", serverPort, templateId)
-	resp, err := http.Get(requestURL)
+	requestURL := fmt.Sprintf("http://localhost:%d/templateservice/templates/%s", serverPort, templateId)
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", requestURL, nil)
+	if err != nil {
+		fmt.Println("Error creating request:", err)
+		os.Exit(1)
+	}
+	req.Header.Set("X-API-Key", token)
+	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Printf("error making http request: %s\n", err)
 		os.Exit(1)
 	}
+
 	defer resp.Body.Close()
 	var jsonresp structs.NormalResponse
 	err = json.NewDecoder(resp.Body).Decode(&templateById)
@@ -130,7 +138,7 @@ func MainTabs(templateId string) {
 		//	panic(err)
 		//}
 		style := lipgloss.NewStyle().
-			Bold(true).Align(lipgloss.Center)
+			Bold(true).Align(lipgloss.Left)
 		tabs := []string{style.Render("\t\tTemplate Info\t\t"), style.Render("\t\tNodes\t\t"), style.Render("\t\tLinks\t\t")}
 		info_string := fmt.Sprintf("ID: %s\n\nName: %s\n\nDescription: %s\n\nCreated at: %s\n\nTopology type: %s\n\nAvailability zone: %s\n\nVlan: %s\n\nDeployed: %s",
 			templateById.Template.TemplateID, templateById.Template.Name, templateById.Template.Description, templateById.Template.CreatedAt.Format("2006-01-02 15:04:05"), templateById.Template.TopologyType,

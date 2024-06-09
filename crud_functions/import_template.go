@@ -8,10 +8,70 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
+	"time"
 
 	structs "github.com/Parz1val02/cloud-cli/structs"
 )
+
+func validateStruct(s interface{}) error {
+	v := reflect.ValueOf(s)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		fieldName := v.Type().Field(i).Name
+
+		// Check if the field is exported
+		if !field.CanInterface() {
+			continue
+		}
+
+		if field.Kind() == reflect.Struct {
+			if err := validateStruct(field.Interface()); err != nil {
+				return err
+			}
+		} else if field.Kind() == reflect.Slice {
+			for j := 0; j < field.Len(); j++ {
+				if field.Index(j).Kind() == reflect.Struct {
+					if err := validateStruct(field.Index(j).Interface()); err != nil {
+						return err
+					}
+				} else if isEmptyValue(field.Index(j)) {
+					return fmt.Errorf("the field '%s' must not be empty", fieldName)
+				}
+			}
+		} else if isEmptyValue(field) {
+			return fmt.Errorf("the field '%s' must not be empty", fieldName)
+		}
+	}
+	return nil
+}
+
+func isEmptyValue(v reflect.Value) bool {
+	switch v.Kind() {
+	case reflect.String:
+		return v.Len() == 0
+	case reflect.Bool:
+		return false // Boolean field can be false, which is not considered empty
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return v.Int() == 0
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return v.Uint() == 0
+	case reflect.Float32, reflect.Float64:
+		return v.Float() == 0
+	case reflect.Interface, reflect.Ptr:
+		return v.IsNil()
+	case reflect.Slice, reflect.Array:
+		return v.Len() == 0
+	case reflect.Struct:
+		return false
+	}
+	return false
+}
 
 func promptForFilePath() (string, error) {
 	reader := bufio.NewReader(os.Stdin)
@@ -55,20 +115,36 @@ func readAndUnmarshalFile(filePath string) (*structs.NormalTemplate, error) {
 	return &normalTemplate, nil
 }
 
-func ImportTemplate() {
+func ImportTemplate(userId, token string) {
 	filePath, err := promptForFilePath()
 	if err != nil {
 		fmt.Println("Error:", err)
 		os.Exit(1)
 	}
-
 	normalTemplate, err := readAndUnmarshalFile(filePath)
 	if err != nil {
 		fmt.Println("Error:", err)
 		os.Exit(1)
 	}
+	normalTemplate.UserID = userId
+	normalTemplate.CreatedAt = time.Now().UTC()
+	err = validateStruct(normalTemplate)
+	if err != nil {
+		fmt.Println("Failed validation: ", err)
+		os.Exit(1)
+	}
 	jsonData, _ := json.Marshal(*normalTemplate)
-	resp, err := http.Post("http://localhost:5000/templates", "application/json", bytes.NewBuffer(jsonData))
+
+	req, err := http.NewRequest("POST", "http://localhost:4444/templateservice/templates", bytes.NewBuffer(jsonData))
+	if err != nil {
+		fmt.Println("Error creating request:", err)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-API-Key", token)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Println("Error at importing template: ", err)
 		os.Exit(1)

@@ -11,7 +11,11 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/spf13/viper"
 )
+
+var token = viper.GetString("token")
 
 type Image struct {
 	ImageID     string `json:"image_id"`
@@ -340,10 +344,17 @@ func selectImage(nodeName string) Image {
 	// Devolver la imagen seleccionada
 	return images[choice-1]
 }
-func fetchImages() ([]Image, error) {
-	url := "http://localhost:5000/templates/images"
 
-	resp, err := http.Get(url)
+func fetchImages() ([]Image, error) {
+	url := "http://localhost:4444/templateservice/templates/images"
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		fmt.Println("Error creating request:", err)
+		os.Exit(1)
+	}
+	req.Header.Set("X-API-Key", token)
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching images: %w", err)
 	}
@@ -396,9 +407,16 @@ func selectFlavor(nodeName string) Flavor {
 }
 
 func fetchFlavors() ([]Flavor, error) {
-	url := "http://localhost:5000/templates/flavors"
+	url := "http://localhost:4444/templateservice/templates/flavors"
 
-	resp, err := http.Get(url)
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		fmt.Println("Error creating request:", err)
+		os.Exit(1)
+	}
+	req.Header.Set("X-API-Key", token)
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching flavors: %w", err)
 	}
@@ -835,10 +853,9 @@ func selectorAvailabilityZone() string {
 }
 
 func CreateTemplate() {
-
 	name := promptString("Enter template name: ")
 	description := promptString("Enter template description: ")
-	//topologyType := promptString("Do you want to create a predefined or custom topology? (predefined/custom): ")
+	// topologyType := promptString("Do you want to create a predefined or custom topology? (predefined/custom): ")
 	fmt.Println("Do you want to create a predefined or custom topology?:")
 	topologyType := selectTopologyType()
 

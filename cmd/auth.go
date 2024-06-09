@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"syscall"
-	"time"
 
 	"github.com/common-nighthawk/go-figure"
 	"github.com/spf13/cobra"
@@ -19,12 +18,10 @@ import (
 )
 
 type User struct {
-	ID        string    `yaml:"id" json:"ID"`
-	Username  string    `yaml:"username" json:"Username"`
-	Password  string    `yaml:"password" json:"Password"`
-	Role      string    `yaml:"role" json:"Role"`
-	Token     string    `yaml:"token" json:"Token"`
-	LastLogin time.Time `yaml:"last_login" json:"LastLogin"`
+	ID       string `yaml:"id" json:"ID"`
+	Username string `yaml:"username" json:"Username"`
+	Role     string `yaml:"role" json:"Role"`
+	Token    string `yaml:"token" json:"Token"`
 }
 
 func PasswordPrompt(label string) string {
@@ -48,7 +45,7 @@ func login(username, password string) (User, error) {
 	}
 
 	jsonData, _ := json.Marshal(authData)
-	resp, err := http.Post("http://localhost:8080/login", "application/json", bytes.NewBuffer(jsonData))
+	resp, err := http.Post("http://localhost:4444/login", "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		fmt.Println("Error in authentication", err)
 		os.Exit(1)
@@ -69,34 +66,6 @@ func login(username, password string) (User, error) {
 		return user, err
 	}
 	return data.User, nil
-}
-
-func logout(username, token string) {
-	authData := map[string]string{
-		"username": username,
-	}
-
-	jsonData, _ := json.Marshal(authData)
-	client := &http.Client{}
-	req, err := http.NewRequest("POST", "http://localhost:8080/authservice/logout", bytes.NewBuffer(jsonData))
-	if err != nil {
-		fmt.Println("Error creating request:", err)
-		os.Exit(1)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-API-Key", token)
-
-	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Println("Error making request:", err)
-		os.Exit(1)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("Unexpected status code: %d", resp.StatusCode)
-		return
-	}
 }
 
 // authCmd represents the auth command
@@ -139,6 +108,7 @@ and usage of using your command.`,
 				user, err = login(username, password)
 				if err != nil {
 					fmt.Println("Error: " + err.Error())
+					return
 				}
 
 				// Write user's credentials to YAML file
@@ -194,10 +164,6 @@ and usage of using your command.`,
 				return
 			}
 		} else {
-			username := viper.GetString("username")
-			token := viper.GetString("token")
-			logout(username, token)
-			// File exists, attempt to remove it
 			if err := os.Remove(filePath); err != nil {
 				fmt.Println(">Error deleting file:", err)
 				return

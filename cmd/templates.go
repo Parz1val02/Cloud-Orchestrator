@@ -32,41 +32,52 @@ func initialModelCRUD2() simplelist.Model {
 }
 
 func listTemplates() {
-	templateId, err := simpletable.MainTable()
+	token := viper.GetString("token")
+	templateId, err := simpletable.MainTable(token)
 	if err != nil {
 		fmt.Println(err)
 	}
-	if templateId != "" {
-		p := tea.NewProgram(initialModelCRUD2())
-		m, err := p.Run()
-		if err != nil {
-			fmt.Printf("Alas, there's been an error: %v", err)
-			os.Exit(1)
-		}
-		if m, ok := m.(simplelist.Model); ok && m.Choices[m.Cursor] != "" {
-			if m.Quit {
-				fmt.Printf("\n---\nQuitting!\n")
-			} else {
-				fmt.Printf("\n---\nYou chose %s!\n", m.Choices[m.Cursor])
-				switch m.Cursor {
-				case 0:
-					tabs.MainTabs(templateId)
-				case 2:
-					error := crud.DeleteTemplate(templateId)
-					if error != nil {
-						fmt.Println("Error:", err)
-						os.Exit(1)
-					}
-				case 4:
-					error := crud.ExportTemplate(templateId)
-					if error != nil {
-						fmt.Println("Error:", err)
-						os.Exit(1)
-					}
-				default:
+	for {
+		if templateId != "" {
+			p := tea.NewProgram(initialModelCRUD2())
+			m, err := p.Run()
+			if err != nil {
+				fmt.Printf("Alas, there's been an error: %v", err)
+				os.Exit(1)
+			}
+			if m, ok := m.(simplelist.Model); ok && m.Choices[m.Cursor] != "" {
+				if m.Quit {
+					fmt.Printf("\n---\nQuitting!\n")
+					break
+				} else {
+					fmt.Printf("\n---\nYou chose %s!\n", m.Choices[m.Cursor])
+					switch m.Cursor {
+					case 0:
+						tabs.MainTabs(templateId, token)
+					case 2:
+						var option string
+						fmt.Printf(">Are you sure you want to delete template with id %s? (y/N): ", templateId)
+						fmt.Scanf("%s\n", &option)
+						if option != "" && option == "y" || option == "Y" {
+							error := crud.DeleteTemplate(templateId, token)
+							if error != nil {
+								fmt.Println("Error:", err)
+								os.Exit(1)
+							}
+						}
+					case 4:
+						error := crud.ExportTemplate(templateId, token)
+						if error != nil {
+							fmt.Println("Error:", err)
+							os.Exit(1)
+						}
+					default:
 
+					}
 				}
 			}
+		} else {
+			break
 		}
 	}
 }
@@ -80,27 +91,32 @@ var templatesCmd = &cobra.Command{
 		myFigure := figure.NewFigure("PUCP Private Cloud Orchestrator", "doom", true)
 		myFigure.Print()
 		fmt.Println()
-		p := tea.NewProgram(initialModelCRUD1())
-		m, err := p.Run()
-		if err != nil {
-			fmt.Printf("Alas, there's been an error: %v", err)
-			os.Exit(1)
-		}
-		if m, ok := m.(simplelist.Model); ok && m.Choices[m.Cursor] != "" {
-			if m.Quit {
-				fmt.Printf("\n---\nQuitting!\n")
-			} else {
-				fmt.Printf("\n---\nYou chose %s!\n", m.Choices[m.Cursor])
-				switch m.Cursor {
-				case 0:
-					fmt.Print("\n---\nSelect a template to execute CRUD operation on\n")
-					listTemplates()
-				case 1:
-					crud.CreateTemplate()
-				case 2:
-					crud.ImportTemplate()
-				default:
+		for {
+			p := tea.NewProgram(initialModelCRUD1())
+			m, err := p.Run()
+			if err != nil {
+				fmt.Printf("Alas, there's been an error: %v", err)
+				os.Exit(1)
+			}
+			if m, ok := m.(simplelist.Model); ok && m.Choices[m.Cursor] != "" {
+				if m.Quit {
+					fmt.Printf("\n---\nQuitting!\n")
+					break
+				} else {
+					fmt.Printf("\n---\nYou chose %s!\n", m.Choices[m.Cursor])
+					switch m.Cursor {
+					case 0:
+						fmt.Print("\n---\nSelect a template to execute CRUD operation on\n")
+						listTemplates()
+					case 1:
+						crud.CreateTemplate()
+					case 2:
+						token := viper.GetString("token")
+						userId := viper.GetString("id")
+						crud.ImportTemplate(userId, token)
+					default:
 
+					}
 				}
 			}
 		}

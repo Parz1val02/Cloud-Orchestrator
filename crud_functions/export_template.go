@@ -12,11 +12,18 @@ import (
 	structs "github.com/Parz1val02/cloud-cli/structs"
 )
 
-func ExportTemplate(templateId string) error {
-	serverPort := 5000
+func ExportTemplate(templateId, token string) error {
+	serverPort := 4444
 	var templateById structs.ListTemplateById
-	requestURL := fmt.Sprintf("http://localhost:%d/templates/%s", serverPort, templateId)
-	resp, err := http.Get(requestURL)
+	requestURL := fmt.Sprintf("http://localhost:%d/templateservice/templates/%s", serverPort, templateId)
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", requestURL, nil)
+	if err != nil {
+		fmt.Println("Error creating request:", err)
+		os.Exit(1)
+	}
+	req.Header.Set("X-API-Key", token)
+	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Printf("error making http request: %s\n", err)
 		os.Exit(1)
@@ -38,7 +45,7 @@ func ExportTemplate(templateId string) error {
 			Description:      templateById.Template.Description,
 			Name:             templateById.Template.Name,
 			Topology:         templateById.Template.Topology,
-			UserID:           templateById.Template.UserID,
+			UserID:           "",
 			VlanID:           templateById.Template.VlanID,
 			TopologyType:     templateById.Template.TopologyType,
 		}

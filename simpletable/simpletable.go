@@ -58,11 +58,20 @@ func (m Model) View() string {
 	return BaseStyle.Render(m.Table.View()) + "\n"
 }
 
-func MainTable() (string, error) {
-	serverPort := 5000
+func MainTable(token string) (string, error) {
+	serverPort := 4444
 	var templates structs.ListTemplates
-	requestURL := fmt.Sprintf("http://localhost:%d/templates", serverPort)
-	resp, err := http.Get(requestURL)
+	requestURL := fmt.Sprintf("http://localhost:%d/templateservice/templates", serverPort)
+
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", requestURL, nil)
+	if err != nil {
+		fmt.Println("Error creating request:", err)
+		os.Exit(1)
+	}
+	req.Header.Set("X-API-Key", token)
+
+	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Printf("error making http request: %s\n", err)
 		os.Exit(1)
