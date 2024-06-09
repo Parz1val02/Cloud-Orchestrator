@@ -241,6 +241,7 @@ def save_json(n_clicks):
         return ""
 '''
 
+#Se envia json: {"topology_type": "Malla", "num_nodes": 4}
 @server.route('/api/generate_topology', methods=['POST'])
 def generate_topology_api():
     global latest_topology_data
