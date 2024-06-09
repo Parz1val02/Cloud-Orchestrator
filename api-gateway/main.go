@@ -1,8 +1,6 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -15,17 +13,12 @@ import (
 )
 
 const (
-	APIGatewayURL       = "http://localhost:8080"
-	AuthserviceURL      = "http://localhost:8081"
-	TemplateserviceeURL = "http://localhost:5000"
+	APIGatewayURL      = "http://localhost:4444"
+	TemplateserviceURL = "http://localhost:5000"
 )
 
 func main() {
-	proxy1, err1 := createReverseProxy(AuthserviceURL)
-	proxy2, err2 := createReverseProxy(TemplateserviceeURL)
-	if err1 != nil {
-		log.Fatalf("Error creating reverse proxy for authservice: %v", err1)
-	}
+	proxy2, err2 := createReverseProxy(TemplateserviceURL)
 	if err2 != nil {
 		log.Fatalf("Error creating reverse proxy for templateservice: %v", err2)
 	}
@@ -36,11 +29,11 @@ func main() {
 	r.Use(rateLimit())
 
 	r.POST("/login", loginHandler)
-	r.Any("/authservice/*path", proxy1)
+	// r.POST("/logout", logoutHandler)
 	r.Any("/templateservice/*path", proxy2)
 
 	log.Printf("API Gateway listening on %s", APIGatewayURL)
-	log.Fatal(r.Run(":8080"))
+	log.Fatal(r.Run(":4444"))
 }
 
 func createReverseProxy(targetURL string) (func(*gin.Context), error) {
@@ -54,7 +47,13 @@ func createReverseProxy(targetURL string) (func(*gin.Context), error) {
 	return func(c *gin.Context) {
 		log.Printf("Request received for %s", c.Request.URL.Path)
 
-		c.Request.URL.Path = strings.TrimPrefix(c.Request.URL.Path, "/authservice")
+		c.Request.URL.Path = strings.TrimPrefix(c.Request.URL.Path, "/templateservice")
+		if user, exists := c.Get("user"); exists {
+			userInfo := user.(UserResponse)
+			c.Request.Header.Set("X-User-ID", userInfo.ID)
+			c.Request.Header.Set("X-User-Username", userInfo.Username)
+			c.Request.Header.Set("X-User-Role", userInfo.Role)
+		}
 
 		proxy.ServeHTTP(c.Writer, c.Request)
 	}, nil
@@ -62,33 +61,29 @@ func createReverseProxy(targetURL string) (func(*gin.Context), error) {
 
 func authenticate() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if c.Request.URL.Path == "/login" {
-			fmt.Println("entrando /login")
+		if c.Request.URL.Path == "/login" || c.Request.URL.Path == "/logout" {
 			c.Next()
 			return
 		}
-		mongoInit()
-		defer func() {
-			if err := mongoClient.Disconnect(context.TODO()); err != nil {
-				panic(err)
-			}
-		}()
 		key := c.GetHeader("X-API-Key")
-		apiKey, err := getTokenByToken(key)
-		fmt.Println("api key de bd" + apiKey)
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-		}
-		if key != apiKey {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		if key == "" {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Token not present"})
 			return
 		}
+
+		// Validate jwt
+		user, err := validateToken(key)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			return
+		}
+		c.Set("user", user)
 		c.Next()
 	}
 }
 
 func rateLimit() gin.HandlerFunc {
-	limiter := rate.NewLimiter(rate.Every(1*time.Minute), 5)
+	limiter := rate.NewLimiter(rate.Every(1*time.Second), 5)
 
 	return func(c *gin.Context) {
 		if !limiter.Allow() {

@@ -2,14 +2,14 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/golang-jwt/jwt"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
@@ -23,11 +23,19 @@ type User struct {
 	Token     string    `bson:"token"`
 	LastLogin time.Time `bson:"last_login"`
 }
+type UserResponse struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+	Role     string `json:"role"`
+	Token    string `json:"token"`
+}
 
 var (
 	mongoClient *mongo.Client
 	collection  *mongo.Collection
 )
+
+var sampleSecretKey = []byte("josemycoach")
 
 func mongoInit() {
 	uri := "mongodb://localhost:27017"
@@ -41,32 +49,6 @@ func mongoInit() {
 	collection = client.Database("cloud").Collection("users")
 }
 
-func updateUser(userID, token string, lastLogin time.Time) error {
-	objID, err := primitive.ObjectIDFromHex(userID)
-	fmt.Println(userID)
-
-	if err != nil {
-		fmt.Println("ObjectIDFromHex ERROR", err)
-	} else {
-		fmt.Println("ObjectIDFromHex:", objID)
-	}
-	filter := bson.M{"_id": bson.M{"$eq": objID}}
-
-	update := bson.M{
-		"$set": bson.M{
-			"token":      token,
-			"last_login": lastLogin,
-		},
-	}
-
-	_, err = collection.UpdateOne(context.Background(), filter, update)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func hashPassword(password string) (string, error) {
 	passwordBytes := []byte(password)
 
@@ -76,18 +58,57 @@ func hashPassword(password string) (string, error) {
 	return string(hashedPasswordBytes), err
 }
 
-func getTokenByToken(token string) (string, error) {
-	filter := bson.M{"token": token}
+func generateJWT(user User) (string, error) {
+	token := jwt.New(jwt.SigningMethodHS256)
+	claims := token.Claims.(jwt.MapClaims)
 
-	var result struct {
-		Token string `bson:"token"`
-	}
-	err := collection.FindOne(context.Background(), filter).Decode(&result)
+	claims["id"] = user.ID
+	claims["username"] = user.Username
+	claims["role"] = user.Role
+	claims["exp"] = time.Now().Add(time.Minute * 30).Unix()
+
+	tokenString, err := token.SignedString(sampleSecretKey)
 	if err != nil {
-		return "", err 
+		fmt.Errorf("Something Went Wrong: %s", err.Error())
+		return "", err
+	}
+	return tokenString, nil
+}
+
+func validateToken(tokenString string) (UserResponse, error) {
+	var user UserResponse
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("there was an error in parsing")
+		}
+		return sampleSecretKey, nil
+	})
+	if err != nil {
+		return user, fmt.Errorf("invalid token: %v", err)
 	}
 
-	return result.Token, nil 
+	if token == nil {
+		return user, fmt.Errorf("invalid token")
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return user, errors.New("couldn't parse claims")
+	}
+
+	exp, ok := claims["exp"].(float64)
+	if !ok {
+		return user, errors.New("token does not contain expiration time")
+	}
+
+	if int64(exp) < time.Now().Unix() {
+		return user, errors.New("token expired")
+	}
+	user.ID = claims["id"].(string)
+	user.Username = claims["username"].(string)
+	user.Role = claims["role"].(string)
+
+	return user, nil
 }
 
 func loginHandler(c *gin.Context) {
@@ -130,14 +151,22 @@ func loginHandler(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
-	token := uuid.New().String()
-	user.Token = token
-	user.LastLogin = time.Now()
-	err = updateUser(user.ID, user.Token, user.LastLogin)
+	// JSON Web token
+	token, err := generateJWT(user)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Error"})
+		fmt.Println("failed to generate token")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
 	}
-	fmt.Println(user.Username)
-	c.JSON(http.StatusOK, gin.H{"user": user})
+	UserResponse := UserResponse{
+		ID:       user.ID,
+		Username: user.Username,
+		Role:     user.Role,
+		Token:    token,
+	}
+	c.JSON(http.StatusOK, gin.H{"user": UserResponse})
 }
+
+//func logoutHandler(c *gin.Context) {
+//	c.JSON(http.StatusOK, gin.H{"message": "Successfully logged out"})
+//}
