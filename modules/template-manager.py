@@ -219,11 +219,20 @@ def graph_plantilla(template_id):
 
 
 def serialize_document_not_template(doc):
-    for key, value in doc.items():
+    """for key, value in doc.items():
         if isinstance(value, ObjectId):
             #  Convertir ObjectId a cadena de texto
             doc[key] = str(value)
             doc["id"] = doc.pop(key)
+    """
+     # Crear una copia del documento original para evitar modificar mientras iteramos
+    doc_copy = doc.copy()
+    for key, value in doc_copy.items():
+        if isinstance(value, ObjectId):
+            # Convertir ObjectId a cadena de texto
+            doc[key] = str(value)
+            if key != "id":
+                doc["id"] = doc.pop(key)
     return doc
 
 
