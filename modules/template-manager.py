@@ -8,14 +8,16 @@ app = Flask(__name__)
 client = MongoClient("localhost", 27017)
 
 
-# Función para serializar documentos MongoDB / necesario para ser enviados como respuesta del endpoint / working
 def serialize_document(doc):
-    for key, value in doc.items():
+    # Crear una copia del documento original para evitar modificar mientras iteramos
+    doc_copy = doc.copy()
+    for key, value in doc_copy.items():
         if isinstance(value, ObjectId):
-            #  Convertir ObjectId a cadena de texto
+            # Convertir ObjectId a cadena de texto
             doc[key] = str(value)
-            doc["template_id"] = doc.pop(key)
-    return doc
+            if key != "template_id":
+                doc["template_id"] = doc.pop(key)
+    return doc  # Función para serializar documentos MongoDB / necesario para ser enviados como respuesta del endpoint / working
 
 
 # Endpoint para listar todas las plantillas / working
