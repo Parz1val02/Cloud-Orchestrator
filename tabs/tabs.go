@@ -144,13 +144,12 @@ func MainTabs(templateId, token string) {
 		style := lipgloss.NewStyle().
 			Bold(true).Align(lipgloss.Left)
 		tabs := []string{style.Render("\t\tTemplate Info\t\t"), style.Render("\t\tNodes\t\t"), style.Render("\t\tLinks\t\t")}
-		info_string := fmt.Sprintf("ID: %s\n\nName: %s\n\nDescription: %s\n\nCreated at: %s\n\nTopology type: %s\n\nAvailability zone: %s\n\nVlan: %s\n\nDeployed: %s",
-			templateById.Template.TemplateID, templateById.Template.Name, templateById.Template.Description, templateById.Template.CreatedAt.Format("2006-01-02 15:04:05"), templateById.Template.TopologyType,
-			templateById.Template.AvailabilityZone, templateById.Template.VlanID, strconv.FormatBool(templateById.Template.Deployed))
+		info_string := fmt.Sprintf("ID: %s\n\nName: %s\n\nDescription: %s\n\nCreated at: %s\n\nTopology type: %s",
+			templateById.Template.TemplateID, templateById.Template.Name, templateById.Template.Description, templateById.Template.CreatedAt.Format("2006-01-02 15:04:05"), templateById.Template.TopologyType)
 		nodes := table.NewWriter()
-		nodes.AppendHeader(table.Row{"ID", "Name", "Image", "Access Protocol", "CPU", "Memory", "Storage"})
+		nodes.AppendHeader(table.Row{"ID", "Name", "Image", "CPU", "Memory", "Storage"})
 		for _, v := range templateById.Template.Topology.Nodes {
-			nodes.AppendRow(table.Row{v.NodeID, v.Name, v.Image, v.AccessProtocol, strconv.Itoa(v.CPU), strconv.FormatFloat(float64(v.Memory), 'f', 1, 32), strconv.FormatFloat(float64(v.Storage), 'f', 1, 32)})
+			nodes.AppendRow(table.Row{v.NodeID, v.Name, v.Image, strconv.Itoa(v.Flavor.CPU), strconv.FormatFloat(float64(v.Flavor.Memory), 'f', 1, 32), strconv.FormatFloat(float64(v.Flavor.Storage), 'f', 1, 32)})
 		}
 		links := table.NewWriter()
 		links.AppendHeader(table.Row{"ID", "Source", "Target"})

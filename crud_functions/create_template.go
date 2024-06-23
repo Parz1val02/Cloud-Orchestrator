@@ -12,10 +12,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
-
-var token = viper.GetString("token")
 
 type Image struct {
 	ImageID     string `json:"image_id"`
@@ -26,14 +25,19 @@ type Image struct {
 }
 
 type Node struct {
-	NodeID         string  `json:"node_id"`
-	Name           string  `json:"name"`
-	AccessProtocol string  `json:"access_protocol"`
-	CPU            int     `json:"cpu"`
-	Image          string  `json:"image"`
-	Memory         float32 `json:"memory"`
-	SecurityRules  []int   `json:"security_rules"`
-	Storage        float32 `json:"storage"`
+	NodeID        string `json:"node_id"`
+	Name          string `json:"name"`
+	Image         string `json:"image"`
+	Flavor        Flavor `json:"flavor"`
+	SecurityRules []int  `json:"security_rules"`
+}
+
+type Flavor struct {
+	FlavorID string  `json:"id"`
+	Name     string  `json:"name"`
+	CPU      int     `json:"cpu"`
+	Memory   float32 `json:"memory"`  // en GB
+	Storage  float32 `json:"storage"` // en GB
 }
 
 type Link struct {
@@ -48,14 +52,24 @@ type Topology struct {
 }
 
 type Template struct {
-	CreatedAt        time.Time `json:"created_at"`
-	AvailabilityZone string    `json:"availability_zone"`
-	Deployed         bool      `json:"deployed"`
-	Description      string    `json:"description"`
-	Name             string    `json:"name"`
-	Topology         Topology  `json:"topology"`
-	UserID           string    `json:"user_id"`
-	TopologyType     string    `json:"topology_type"`
+	CreatedAt    time.Time `json:"created_at"`
+	Description  string    `json:"description"`
+	Name         string    `json:"name"`
+	Topology     Topology  `json:"topology"`
+	UserID       string    `json:"user_id"`
+	TopologyType string    `json:"topology_type"`
+}
+
+func initConfig() {
+	home, err := os.UserHomeDir()
+	cobra.CheckErr(err)
+	// Check if the YAML file exists
+	if _, err := os.Stat(home + "/.cloud-cli.yaml"); err == nil {
+		// YAML file exists, assume user is authenticated
+		viper.AddConfigPath(home)
+		viper.SetConfigType("yaml")
+		viper.SetConfigName(".cloud-cli")
+	}
 }
 
 func promptString(promptText string) string {
@@ -107,8 +121,8 @@ func createLinealTopology() Topology {
 	for i := 0; i < numNodes-1; i++ {
 		links = append(links, Link{
 			LinkID: fmt.Sprintf("nd%d_nd%d", i+1, i+2),
-			Source: nodes[i].Name,
-			Target: nodes[i+1].Name,
+			Source: nodes[i].NodeID,
+			Target: nodes[i+1].NodeID,
 		})
 	}
 	return Topology{Nodes: nodes, Links: links}
@@ -122,8 +136,8 @@ func createMeshTopology() Topology {
 		for j := i + 1; j < numNodes; j++ {
 			links = append(links, Link{
 				LinkID: fmt.Sprintf("nd%d_nd%d", i+1, j+1),
-				Source: nodes[i].Name,
-				Target: nodes[j].Name,
+				Source: nodes[i].NodeID,
+				Target: nodes[j].NodeID,
 			})
 		}
 	}
@@ -142,15 +156,15 @@ func createBinaryTreeTopology() Topology {
 		if leftChild < len(nodes) {
 			links = append(links, Link{
 				LinkID: fmt.Sprintf("nd%d_nd%d", i+1, leftChild+1),
-				Source: nodes[i].Name,
-				Target: nodes[leftChild].Name,
+				Source: nodes[i].NodeID,
+				Target: nodes[leftChild].NodeID,
 			})
 		}
 		if rightChild < len(nodes) {
 			links = append(links, Link{
 				LinkID: fmt.Sprintf("nd%d_nd%d", i+1, rightChild+1),
-				Source: nodes[i].Name,
-				Target: nodes[rightChild].Name,
+				Source: nodes[i].NodeID,
+				Target: nodes[rightChild].NodeID,
 			})
 		}
 	}
@@ -162,14 +176,11 @@ func generalTreeNode(id int) Node {
 	nodeName := fmt.Sprintf("node_%d", id)
 	flavor := selectFlavor(nodeName)
 	return Node{
-		NodeID:         fmt.Sprintf("nd%d", id),
-		Name:           nodeName,
-		AccessProtocol: "SSH",
-		CPU:            flavor.CPU,
-		Image:          promptString(fmt.Sprintf("Enter Image for %s: ", nodeName)),
-		Memory:         flavor.Memory,
-		SecurityRules:  []int{22},
-		Storage:        flavor.Storage,
+		NodeID:        fmt.Sprintf("nd%d", id),
+		Name:          nodeName,
+		Flavor:        flavor,
+		Image:         promptString(fmt.Sprintf("Enter Image for %s: ", nodeName)),
+		SecurityRules: []int{22},
 	}
 }
 
@@ -246,8 +257,8 @@ func createGeneralTreeTopology() Topology {
 				// Create link from parent to child
 				links = append(links, Link{
 					LinkID: fmt.Sprintf("%s_%s", parent.NodeID, node.NodeID),
-					Source: parent.Name,
-					Target: node.Name,
+					Source: parent.NodeID,
+					Target: node.NodeID,
 				})
 			}
 			newLevelParents = append(newLevelParents, levelNodes...)
@@ -282,8 +293,8 @@ func createRingTopology() Topology {
 	for i := 0; i < numNodes; i++ {
 		links = append(links, Link{
 			LinkID: fmt.Sprintf("nd%d_nd%d", i+1, (i+1)%numNodes+1),
-			Source: nodes[i].Name,
-			Target: nodes[(i+1)%numNodes].Name,
+			Source: nodes[i].NodeID,
+			Target: nodes[(i+1)%numNodes].NodeID,
 		})
 	}
 	return Topology{Nodes: nodes, Links: links}
@@ -297,19 +308,11 @@ func createStarTopology() Topology {
 	for i := 1; i < numNodes; i++ {
 		links = append(links, Link{
 			LinkID: fmt.Sprintf("nd1_nd%d", i+1), //  i+1 for rest of the nodes
-			Source: nodes[0].Name,                //  central node is node_1
-			Target: nodes[i].Name,                //  array index for rest of the nodes
+			Source: nodes[0].NodeID,              //  central node is node_1
+			Target: nodes[i].NodeID,              //  array index for rest of the nodes
 		})
 	}
 	return Topology{Nodes: nodes, Links: links}
-}
-
-type Flavor struct {
-	FlavorID string
-	Name     string
-	CPU      int
-	Memory   float32 // en GB
-	Storage  float32 // en GB
 }
 
 /*
@@ -353,7 +356,9 @@ func fetchImages() ([]Image, error) {
 		fmt.Println("Error creating request:", err)
 		os.Exit(1)
 	}
+	var token = viper.GetString("token")
 	req.Header.Set("X-API-Key", token)
+	//fmt.Println("TOKEN", token)
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching images: %w", err)
@@ -415,7 +420,9 @@ func fetchFlavors() ([]Flavor, error) {
 		fmt.Println("Error creating request:", err)
 		os.Exit(1)
 	}
+	var token = viper.GetString("token")
 	req.Header.Set("X-API-Key", token)
+	//fmt.Println("token:", token)
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching flavors: %w", err)
@@ -450,14 +457,11 @@ func createNodes(numNodes int) []Node {
 		flavor := selectFlavor(nodeName)
 		image := selectImage(nodeName)
 		nodes[i] = Node{
-			NodeID:         fmt.Sprintf("nd%d", i+1),
-			Name:           nodeName,
-			AccessProtocol: "SSH", // Supongamos que siempre hay una regla de seguridad SSH por defecto
-			CPU:            flavor.CPU,
-			Image:          fmt.Sprintf("%s %s", image.Name, image.Version),
-			Memory:         flavor.Memory,
-			SecurityRules:  []int{22}, // Supongamos que siempre hay una regla de seguridad SSH por defecto
-			Storage:        flavor.Storage,
+			NodeID:        fmt.Sprintf("nd%d", i+1),
+			Name:          nodeName,
+			Flavor:        flavor,
+			Image:         fmt.Sprintf("%s %s", image.Name, image.Version),
+			SecurityRules: []int{22}, // Supongamos que siempre hay una regla de seguridad SSH por defecto
 		}
 	}
 	return nodes
@@ -471,9 +475,9 @@ func createCustomTopology() Topology {
 		for j := i + 1; j < numNodes; j++ {
 			if promptString(fmt.Sprintf("Create link between %s and %s? (y/n): ", nodes[i].Name, nodes[j].Name)) == "y" {
 				links = append(links, Link{
-					LinkID: fmt.Sprintf("link_id_%d_%d", i+1, j+1),
-					Source: nodes[i].Name,
-					Target: nodes[j].Name,
+					LinkID: fmt.Sprintf("nd%d_nd%d", i+1, j+1),
+					Source: nodes[i].NodeID,
+					Target: nodes[j].NodeID,
 				})
 			}
 		}
@@ -516,9 +520,9 @@ func printTopologyTable(topology Topology) {
 	fmt.Println("Topology:")
 	fmt.Println("-------------------------------------------------------")
 	fmt.Println("Nodes:")
-	fmt.Printf("%-10s %-10s %-10s %-15s %-15s %-15s\n", "NodeID", "Name", "CPU", "Memory(GB)", "Storage(GB)", "Links")
+	fmt.Printf("%-20s %-20s %-20s %-20s %-20s %-20s\n", "NodeID", "Name", "CPU", "Memory(GB)", "Storage(GB)", "Links")
 	for _, node := range topology.Nodes {
-		fmt.Printf("%-10s %-10s %-10d %-15.1f %-15.1f", node.NodeID, node.Name, node.CPU, node.Memory, node.Storage)
+		fmt.Printf("%-20s %-20s %-20d %-20.1f %-20.1f", node.NodeID, node.Name, node.Flavor.CPU, node.Flavor.Memory, node.Flavor.Storage)
 		linkedNodes := []string{}
 		for _, link := range topology.Links {
 			if link.Source == node.Name || link.Target == node.Name {
@@ -529,21 +533,20 @@ func printTopologyTable(topology Topology) {
 				}
 			}
 		}
-		fmt.Printf("%-15s\n", strings.Join(linkedNodes, ", "))
+		fmt.Printf("%-20s\n", strings.Join(linkedNodes, ", "))
 	}
 	fmt.Println("-------------------------------------------------------")
 	fmt.Println("Links:")
-	fmt.Printf("%-10s %-15s %-15s\n", "LinkID", "Source", "Target")
+	fmt.Printf("%-20s %-20s %-20s\n", "LinkID", "Source", "Target")
 	for _, link := range topology.Links {
-		fmt.Printf("%-10s %-15s %-15s\n", link.LinkID, link.Source, link.Target)
+		fmt.Printf("%-20s %-20s %-20s\n", link.LinkID, link.Source, link.Target)
 	}
 }
 
 func graphTemplateTopology(template Template) {
 	templateDetails := `
 			<strong>Template Name:</strong> ` + template.Name + `<br>
-			<strong>Description:</strong> ` + template.Description + `<br>
-			<strong>Availability Zone:</strong> ` + template.AvailabilityZone + `<br>
+			<strong>Description:</strong> ` + template.Description + `
 			`
 
 	htmlContent := `
@@ -611,7 +614,7 @@ func graphTemplateTopology(template Template) {
 	for _, node := range template.Topology.Nodes {
 		htmlContent += fmt.Sprintf(`
                     { data: { id: '%s', name: '%s', cpu: '%d', memory: '%.1f', storage: '%.1f', image: '%s' } },
-`, node.Name, node.Name, node.CPU, node.Memory, node.Storage, node.Image)
+`, node.NodeID, node.Name, node.Flavor.CPU, node.Flavor.Memory, node.Flavor.Storage, node.Image)
 	}
 
 	for _, link := range template.Topology.Links {
@@ -799,7 +802,7 @@ type AvailabilityZone struct {
 }
 
 // Crear 3 zonas de disponibilidad con diferentes combinaciones de servidores
-var availabilityZones = []AvailabilityZone{
+/*var availabilityZones = []AvailabilityZone{
 	{
 		ID:   "zone_1",
 		Name: "Zone 1",
@@ -825,10 +828,10 @@ var availabilityZones = []AvailabilityZone{
 			{Name: "Worker3"},
 		},
 	},
-}
+}*/
 
 // Función para solicitar al usuario que seleccione una zona de disponibilidad
-func selectorAvailabilityZone() string {
+/*func selectorAvailabilityZone() string {
 	fmt.Println("Select an Availability Zone:")
 
 	for i, zone := range availabilityZones {
@@ -850,9 +853,12 @@ func selectorAvailabilityZone() string {
 	}
 
 	return availabilityZones[choice-1].ID
-}
+}*/
 
 func CreateTemplate() {
+
+	initConfig()
+
 	name := promptString("Enter template name: ")
 	description := promptString("Enter template description: ")
 	// topologyType := promptString("Do you want to create a predefined or custom topology? (predefined/custom): ")
@@ -871,17 +877,15 @@ func CreateTemplate() {
 	fmt.Printf("Nodes: %+v\n", topology.Nodes)
 	fmt.Printf("Links: %+v\n", topology.Links)
 
-	availabilityZone := selectorAvailabilityZone()
+	//availabilityZone := selectorAvailabilityZone()
 
 	template := Template{
-		CreatedAt:        time.Now().UTC(),
-		AvailabilityZone: availabilityZone,
-		Deployed:         false,
-		Description:      description,
-		Name:             name,
-		Topology:         topology,
-		TopologyType:     topologyType,
-		UserID:           "6640550a53c1187a6899a5a9",
+		CreatedAt:    time.Now().UTC(),
+		Description:  description,
+		Name:         name,
+		Topology:     topology,
+		TopologyType: topologyType,
+		UserID:       "6640550a53c1187a6899a5a9",
 	}
 
 	templateJSON, _ := json.MarshalIndent(template, "", "  ")

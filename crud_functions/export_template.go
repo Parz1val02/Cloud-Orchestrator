@@ -39,15 +39,12 @@ func ExportTemplate(templateId, token string) error {
 
 	if templateById.Result == "success" && templateById.Template.TemplateID == templateId {
 		exportTemplate := structs.NormalTemplate{
-			CreatedAt:        templateById.Template.CreatedAt,
-			AvailabilityZone: templateById.Template.AvailabilityZone,
-			Deployed:         templateById.Template.Deployed,
-			Description:      templateById.Template.Description,
-			Name:             templateById.Template.Name,
-			Topology:         templateById.Template.Topology,
-			UserID:           "",
-			VlanID:           templateById.Template.VlanID,
-			TopologyType:     templateById.Template.TopologyType,
+			CreatedAt:    templateById.Template.CreatedAt,
+			Description:  templateById.Template.Description,
+			Name:         templateById.Template.Name,
+			Topology:     templateById.Template.Topology,
+			UserID:       "",
+			TopologyType: templateById.Template.TopologyType,
 		}
 		jsonData, err := json.MarshalIndent(exportTemplate, "", "  ")
 		if err != nil {

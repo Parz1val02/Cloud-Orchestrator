@@ -54,6 +54,9 @@ func listTemplates() {
 					switch m.Cursor {
 					case 0:
 						tabs.MainTabs(templateId, token)
+					case 1:
+						crud.EditTemplate(templateId, token)
+
 					case 2:
 						var option string
 						fmt.Printf(">Are you sure you want to delete template with id %s? (y/N): ", templateId)
