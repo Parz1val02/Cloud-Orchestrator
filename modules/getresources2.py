@@ -54,8 +54,9 @@ async def revisar_y_eliminar_excesos():
 
         await asyncio.sleep(5)  # Espera 5 segundos antes de revisar nuevamente
 
-async def app_lifespan():
-    await revisar_y_eliminar_excesos()
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(revisar_y_eliminar_excesos())
 
 if __name__ == "__main__":
     import uvicorn
