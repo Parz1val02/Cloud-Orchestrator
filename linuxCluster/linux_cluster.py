@@ -115,7 +115,7 @@ def execute_on_worker(worker_address, script, username, password):
 
 
 def main():
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 4:
         print("Usage: python script.py <slice_id> <number_of_nodes> <internet>")
         sys.exit(1)
 
