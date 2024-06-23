@@ -138,7 +138,7 @@ def main():
     password = "ubuntu"
 
     # Parámetros para los scripts
-    slice_id = sys.argv[1]
+    # slice_id = sys.argv[1]
     headnode_ovs_name = "br-int"
     headnode_interfaces = "ens5"  # Coloca las interfaces del HeadNode aquí
     worker_ovs_name = "br-int"
@@ -147,7 +147,7 @@ def main():
 
     vlan_parameters = [
         (
-            "vlan" + slice_id,
+            "vlan" + vlan_id,
             vlan_id,
             "192.168.0.0/24",
             "192.168.0.3,192.168.0.100,255.255.255.255",
@@ -155,7 +155,7 @@ def main():
     ]
     vm_parameters = []
     for i in range(number_of_nodes):
-        vm_name = f"vm{slice_id}_{i}"
+        vm_name = f"vm{vlan_id}_{i}"
         bridge = "br-int"
         vlan_id = vlan_id
         portga = random.randint(1, 500)
@@ -198,8 +198,8 @@ def main():
                 password,
             )
 
-    internet = bool(sys.argv[3])
-    if internet:
+    internet = int(sys.argv[3])
+    if internet == 1:
         for vlan_param in vlan_parameters:
             vlan_id = vlan_param[1]
             print(f"implement_orchestrator/vlan_internet.sh {vlan_id}")
