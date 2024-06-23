@@ -116,7 +116,7 @@ def execute_on_worker(worker_address, script, username, password):
 
 def main():
     if len(sys.argv) != 3:
-        print("Usage: python script.py <slice_id> <number_of_nodes>")
+        print("Usage: python script.py <slice_id> <number_of_nodes> <internet>")
         sys.exit(1)
 
     try:
@@ -194,10 +194,12 @@ def main():
                 password,
             )
 
-    for vlan_param in vlan_parameters:
-        vlan_id = vlan_param[1]
-        print(f"vlan_internet.sh {vlan_id}")
-        execute_on_headnode(f"vlan_internet.sh {vlan_id}")
+    internet = bool(sys.argv[3])
+    if internet:
+        for vlan_param in vlan_parameters:
+            vlan_id = vlan_param[1]
+            print(f"vlan_internet.sh {vlan_id}")
+            execute_on_headnode(f"vlan_internet.sh {vlan_id}")
 
     print("Orquestador de cómputo inicializado exitosamente.")
 
