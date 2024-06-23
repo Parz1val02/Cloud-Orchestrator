@@ -164,22 +164,22 @@ def main():
 
     # Ejecución de los scripts en el HeadNode
     print(f"bash init_headnode.sh {headnode_ovs_name} {headnode_interfaces}")
-    # execute_on_headnode(
-    #    f"bash init_headnode.sh {headnode_ovs_name} {headnode_interfaces}"
-    # )
+    execute_on_headnode(
+        f"bash init_headnode.sh {headnode_ovs_name} {headnode_interfaces}"
+    )
     for vlan_param in vlan_parameters:
         print(f"bash internal_net_headnode.sh {' '.join(vlan_param)}")
-        # execute_on_headnode(f"bash internal_net_headnode.sh {' '.join(vlan_param)}")
+        execute_on_headnode(f"bash internal_net_headnode.sh {' '.join(vlan_param)}")
 
     # Ejecución de los scripts en los Workers
     for worker_address in worker_addresses:
         print(f"sudo -S bash init_worker.sh {worker_ovs_name} {worker_interfaces}")
-        # execute_on_worker(
-        #    worker_address,
-        #    f"sudo -S bash init_worker.sh {worker_ovs_name} {worker_interfaces}",
-        #    username,
-        #    password,
-        # )
+        execute_on_worker(
+            worker_address,
+            f"sudo -S bash init_worker.sh {worker_ovs_name} {worker_interfaces}",
+            username,
+            password,
+        )
 
     assignments = assign_nodes_to_workers(number_of_nodes, worker_addresses)
 
@@ -187,17 +187,17 @@ def main():
         print(f"{worker} is assigned nodes: {', '.join(assigned_nodes)}")
         for i in assigned_nodes:
             print(f"sudo -S bash vm_script.sh {' '.join(vm_parameters[int(i)-1])}")
-            # execute_on_worker(
-            #    worker,
-            #    f"sudo -S bash vm_script.sh {' '.join(vm_parameters[int(i)-1])}",
-            #    username,
-            #    password,
-            # )
+            execute_on_worker(
+                worker,
+                f"sudo -S bash vm_script.sh {' '.join(vm_parameters[int(i)-1])}",
+                username,
+                password,
+            )
 
     for vlan_param in vlan_parameters:
         vlan_id = vlan_param[1]
         print(f"vlan_internet.sh {vlan_id}")
-        # execute_on_headnode(f"vlan_internet.sh {vlan_id}")
+        execute_on_headnode(f"vlan_internet.sh {vlan_id}")
 
     print("Orquestador de cómputo inicializado exitosamente.")
 
