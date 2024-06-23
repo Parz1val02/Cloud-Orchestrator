@@ -163,13 +163,17 @@ def main():
         vm_parameters.append([vm_name, bridge, vlan_id, port])
 
     # Ejecución de los scripts en el HeadNode
-    print(f"bash init_headnode.sh {headnode_ovs_name} {headnode_interfaces}")
+    print(
+        f"bash init_orchestrator/init_headnode.sh {headnode_ovs_name} {headnode_interfaces}"
+    )
     execute_on_headnode(
-        f"bash init_headnode.sh {headnode_ovs_name} {headnode_interfaces}"
+        f"bash init_orchestrator/init_headnode.sh {headnode_ovs_name} {headnode_interfaces}"
     )
     for vlan_param in vlan_parameters:
-        print(f"bash internal_net_headnode.sh {' '.join(vlan_param)}")
-        execute_on_headnode(f"bash internal_net_headnode.sh {' '.join(vlan_param)}")
+        print(f"bash init_orchestrator/internal_net_headnode.sh {' '.join(vlan_param)}")
+        execute_on_headnode(
+            f"bash init_orchestrator/internal_net_headnode.sh {' '.join(vlan_param)}"
+        )
 
     # Ejecución de los scripts en los Workers
     for worker_address in worker_addresses:
@@ -198,8 +202,8 @@ def main():
     if internet:
         for vlan_param in vlan_parameters:
             vlan_id = vlan_param[1]
-            print(f"vlan_internet.sh {vlan_id}")
-            execute_on_headnode(f"vlan_internet.sh {vlan_id}")
+            print(f"implement_orchestrator/vlan_internet.sh {vlan_id}")
+            execute_on_headnode(f"implement_orchestrator/vlan_internet.sh {vlan_id}")
 
     print("Orquestador de cómputo inicializado exitosamente.")
 
