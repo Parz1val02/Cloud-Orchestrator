@@ -155,7 +155,7 @@ def main():
     ]
     vm_parameters = []
     for i in range(number_of_nodes):
-        vm_name = f"vm{vlan_id}a{i}"
+        vm_name = f"vm{vlan_id}{i}"
         bridge = "br-int"
         vlan_id = vlan_id
         portga = random.randint(1, 500)

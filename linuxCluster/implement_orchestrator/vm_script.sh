@@ -13,7 +13,7 @@ generate_random_mac() {
 puertoVNC_local="$((PuertoVNC - 5900))"
 
 # crear interfaz TAP
-interfaz_tap_vm="$NombreOvS"-"$NombreVM"-tap
+interfaz_tap_vm="$NombreVM"-tap
 ip tuntap add mode tap name "$interfaz_tap_vm"
 random_mac=$(generate_random_mac)
 
