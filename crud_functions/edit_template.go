@@ -46,6 +46,15 @@ type ListTemplateById struct {
 }
 
 // Funciones para manipular el template
+
+// Helper function to get the next available port for a node
+func getNextPort(nodeID string, portMap map[string]int) string {
+	portNumber := portMap[nodeID]
+	portID := fmt.Sprintf("%s_port%d", nodeID, portNumber)
+	portMap[nodeID]++
+	return portID
+}
+
 func createNode(template *Template, modification *Modification, name, image string, flavor Flavor) {
 	newID := fmt.Sprintf("nd%d", len(template.Topology.Nodes)+1)
 	newNode := Node{
@@ -53,6 +62,7 @@ func createNode(template *Template, modification *Modification, name, image stri
 		Name:   name,
 		Image:  image,
 		Flavor: flavor,
+		Ports:  []Port{}, // Initialize with an empty slice of Ports
 	}
 
 	template.Topology.Nodes = append(template.Topology.Nodes, newNode)
@@ -106,7 +116,8 @@ func editFlavor(template *Template, modification *Modification, nodeID string, n
 	}
 
 	if foundNode == nil {
-		log.Fatalf("Node %s not found", nodeID)
+		fmt.Printf("Node %s not found", nodeID)
+		return
 	}
 
 	foundNode.Flavor = newFlavor
@@ -120,19 +131,46 @@ func editFlavor(template *Template, modification *Modification, nodeID string, n
 func createLink(template *Template, modification *Modification, source, target string) {
 	for _, link := range template.Topology.Links {
 		if (link.Source == source && link.Target == target) || (link.Source == target && link.Target == source) {
-			log.Fatalf("Link already exists between %s and %s", source, target)
+			fmt.Println("Link already exists between ", source, " and ", target)
+			return
+		}
+		if source == target {
+			fmt.Println("Link cannot be created between ", source, " and ", target, ". Source and Target are the same.")
+			return
 		}
 	}
 
+	portMap := make(map[string]int)
+	// Initialize the portMap with the current port count for each node
+	for _, node := range template.Topology.Nodes {
+		portMap[node.NodeID] = len(node.Ports)
+	}
+
+	sourcePortID := getNextPort(source, portMap)
+	targetPortID := getNextPort(target, portMap)
+
 	newID := fmt.Sprintf("%s_%s", source, target)
 	newLink := Link{
-		LinkID: newID,
-		Source: source,
-		Target: target,
+		LinkID:     newID,
+		Source:     source,
+		Target:     target,
+		SourcePort: sourcePortID,
+		TargetPort: targetPortID,
+	}
+
+	// Add ports to the source and target nodes
+	for i := range template.Topology.Nodes {
+		if template.Topology.Nodes[i].NodeID == source {
+			template.Topology.Nodes[i].Ports = append(template.Topology.Nodes[i].Ports, Port{PortID: sourcePortID})
+		}
+		if template.Topology.Nodes[i].NodeID == target {
+			template.Topology.Nodes[i].Ports = append(template.Topology.Nodes[i].Ports, Port{PortID: targetPortID})
+		}
 	}
 
 	template.Topology.Links = append(template.Topology.Links, newLink)
 	modification.CreatedLinks = append(modification.CreatedLinks, newLink)
+	fmt.Println("Link created between ", source, " and ", target)
 }
 
 func deleteLink(template *Template, modification *Modification, linkID string) {
@@ -150,7 +188,8 @@ func deleteLink(template *Template, modification *Modification, linkID string) {
 	}
 
 	if !found {
-		log.Fatalf("Link %s not found", linkID)
+		fmt.Printf("Link %s not found\n", linkID)
+		return
 	}
 
 	template.Topology.Links = updatedLinks
@@ -164,9 +203,9 @@ func editTemplateTable(template *Template) {
 		nodes.AppendRow(table.Row{v.NodeID, v.Name, v.Image, strconv.Itoa(v.Flavor.CPU), strconv.FormatFloat(float64(v.Flavor.Memory), 'f', 1, 32), strconv.FormatFloat(float64(v.Flavor.Storage), 'f', 1, 32)})
 	}
 	links := table.NewWriter()
-	links.AppendHeader(table.Row{"ID", "Source", "Target"})
+	links.AppendHeader(table.Row{"ID", "Source", "Target", "SourcePort", "TargetPort"})
 	for _, v := range template.Topology.Links {
-		links.AppendRow(table.Row{v.LinkID, v.Source, v.Target})
+		links.AppendRow(table.Row{v.LinkID, v.Source, v.Target, v.SourcePort, v.TargetPort})
 	}
 
 	nodes.SetOutputMirror(os.Stdout)
@@ -273,6 +312,8 @@ func EditTemplate(templateId string, token string) {
 flag:
 	for {
 		//printTopologyTable(template.Topology)
+		modificationJSON, _ := json.MarshalIndent(modification, "", "  ")
+		fmt.Printf("modification JSON:\n%s\n", string(modificationJSON))
 		editTemplateTable(&template)
 		fmt.Println("\nMenu:")
 		fmt.Println("1. Create node")
@@ -345,6 +386,11 @@ flag:
 			source := promptString("Enter the ID of the source node: ")
 			target := promptString("Enter the ID of the target node: ")
 			createLink(&template, &modification, source, target)
+			/*if linkCreated {
+				fmt.Printf("Link created between %s and %s", source, target)
+			} else {
+				fmt.Printf("Link cannot be created between %s and %s. Link already exists or source and target are the same", source, target)
+			}*/
 
 		case 5:
 			fmt.Println("Existing links:")

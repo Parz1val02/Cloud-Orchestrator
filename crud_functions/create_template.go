@@ -17,11 +17,15 @@ import (
 )
 
 type Image struct {
-	ImageID     string `json:"image_id"`
+	ImageID     string `json:"id"`
 	Name        string `json:"name"`
 	Version     string `json:"version"`
 	Description string `json:"description"`
 	ImageURL    string `json:"image_url"`
+}
+
+type Port struct {
+	PortID string `json:"node_id"`
 }
 
 type Node struct {
@@ -30,6 +34,7 @@ type Node struct {
 	Image         string `json:"image"`
 	Flavor        Flavor `json:"flavor"`
 	SecurityRules []int  `json:"security_rules"`
+	Ports         []Port `json:"ports"`
 }
 
 type Flavor struct {
@@ -41,9 +46,11 @@ type Flavor struct {
 }
 
 type Link struct {
-	LinkID string `json:"link_id"`
-	Source string `json:"source"`
-	Target string `json:"target"`
+	LinkID     string `json:"link_id"`
+	Source     string `json:"source"`
+	Target     string `json:"target"`
+	SourcePort string `json:"source_port"`
+	TargetPort string `json:"target_port"`
 }
 
 type Topology struct {
@@ -118,12 +125,36 @@ func createLinealTopology() Topology {
 	numNodes := promptInt("Enter the number of nodes: ")
 	nodes := createNodes(numNodes)
 	var links []Link
+
+	// Map to keep track of the next available port number for each node
+	portMap := make(map[string]int)
+
 	for i := 0; i < numNodes-1; i++ {
+		sourceNodeID := nodes[i].NodeID
+		targetNodeID := nodes[i+1].NodeID
+
+		sourcePortNumber := portMap[sourceNodeID]
+		targetPortNumber := portMap[targetNodeID]
+
+		sourcePortID := fmt.Sprintf("%s_port%d", sourceNodeID, sourcePortNumber)
+		targetPortID := fmt.Sprintf("%s_port%d", targetNodeID, targetPortNumber)
+
+		// Añadir puertos a los nodos
+		nodes[i].Ports = append(nodes[i].Ports, Port{PortID: sourcePortID})
+		nodes[i+1].Ports = append(nodes[i+1].Ports, Port{PortID: targetPortID})
+
+		// Incrementar el contador de puertos para el próximo puerto disponible
+		portMap[sourceNodeID]++
+		portMap[targetNodeID]++
+
 		links = append(links, Link{
-			LinkID: fmt.Sprintf("nd%d_nd%d", i+1, i+2),
-			Source: nodes[i].NodeID,
-			Target: nodes[i+1].NodeID,
+			LinkID:     fmt.Sprintf("nd%d_nd%d", i+1, i+2),
+			Source:     sourceNodeID,
+			Target:     targetNodeID,
+			SourcePort: sourcePortID,
+			TargetPort: targetPortID,
 		})
+
 	}
 	return Topology{Nodes: nodes, Links: links}
 }
@@ -132,12 +163,35 @@ func createMeshTopology() Topology {
 	numNodes := promptInt("Enter the number of nodes: ")
 	nodes := createNodes(numNodes)
 	var links []Link
+
+	// Map to keep track of the next available port number for each node
+	portMap := make(map[string]int)
+
 	for i := 0; i < numNodes; i++ {
 		for j := i + 1; j < numNodes; j++ {
+			sourceNodeID := nodes[i].NodeID
+			targetNodeID := nodes[j].NodeID
+
+			sourcePortNumber := portMap[sourceNodeID]
+			targetPortNumber := portMap[targetNodeID]
+
+			sourcePortID := fmt.Sprintf("%s_port%d", sourceNodeID, sourcePortNumber)
+			targetPortID := fmt.Sprintf("%s_port%d", targetNodeID, targetPortNumber)
+
+			// Add ports to nodes
+			nodes[i].Ports = append(nodes[i].Ports, Port{PortID: sourcePortID})
+			nodes[j].Ports = append(nodes[j].Ports, Port{PortID: targetPortID})
+
+			// Increment port numbers
+			portMap[sourceNodeID]++
+			portMap[targetNodeID]++
+
 			links = append(links, Link{
-				LinkID: fmt.Sprintf("nd%d_nd%d", i+1, j+1),
-				Source: nodes[i].NodeID,
-				Target: nodes[j].NodeID,
+				LinkID:     fmt.Sprintf("nd%d_nd%d", i+1, j+1),
+				Source:     sourceNodeID,
+				Target:     targetNodeID,
+				SourcePort: sourcePortID,
+				TargetPort: targetPortID,
 			})
 		}
 	}
@@ -150,21 +204,64 @@ func createBinaryTreeTopology() Topology {
 	numNodes := (1 << numLevels) - 1 // 2^levels - 1
 	nodes := createNodes(numNodes)
 	var links []Link
+	// Map to keep track of the next available port number for each node
+	portMap := make(map[string]int)
+
 	for i := 0; i < (1<<(numLevels-1))-1; i++ {
 		leftChild := 2*i + 1
 		rightChild := 2*i + 2
 		if leftChild < len(nodes) {
+
+			sourceNodeID := nodes[i].NodeID
+			targetNodeID := nodes[leftChild].NodeID
+
+			sourcePortNumber := portMap[sourceNodeID]
+			targetPortNumber := portMap[targetNodeID]
+
+			sourcePortID := fmt.Sprintf("%s_port%d", sourceNodeID, sourcePortNumber)
+			targetPortID := fmt.Sprintf("%s_port%d", targetNodeID, targetPortNumber)
+
+			// Add ports to nodes
+			nodes[i].Ports = append(nodes[i].Ports, Port{PortID: sourcePortID})
+			nodes[leftChild].Ports = append(nodes[leftChild].Ports, Port{PortID: targetPortID})
+
+			// Increment port numbers
+			portMap[sourceNodeID]++
+			portMap[targetNodeID]++
+
 			links = append(links, Link{
-				LinkID: fmt.Sprintf("nd%d_nd%d", i+1, leftChild+1),
-				Source: nodes[i].NodeID,
-				Target: nodes[leftChild].NodeID,
+				LinkID:     fmt.Sprintf("nd%d_nd%d", i+1, leftChild+1),
+				Source:     sourceNodeID,
+				Target:     targetNodeID,
+				SourcePort: sourcePortID,
+				TargetPort: targetPortID,
 			})
 		}
 		if rightChild < len(nodes) {
+
+			sourceNodeID := nodes[i].NodeID
+			targetNodeID := nodes[rightChild].NodeID
+
+			sourcePortNumber := portMap[sourceNodeID]
+			targetPortNumber := portMap[targetNodeID]
+
+			sourcePortID := fmt.Sprintf("%s_port%d", sourceNodeID, sourcePortNumber)
+			targetPortID := fmt.Sprintf("%s_port%d", targetNodeID, targetPortNumber)
+
+			// Add ports to nodes
+			nodes[i].Ports = append(nodes[i].Ports, Port{PortID: sourcePortID})
+			nodes[rightChild].Ports = append(nodes[rightChild].Ports, Port{PortID: targetPortID})
+
+			// Increment port numbers
+			portMap[sourceNodeID]++
+			portMap[targetNodeID]++
+
 			links = append(links, Link{
-				LinkID: fmt.Sprintf("nd%d_nd%d", i+1, rightChild+1),
-				Source: nodes[i].NodeID,
-				Target: nodes[rightChild].NodeID,
+				LinkID:     fmt.Sprintf("nd%d_nd%d", i+1, rightChild+1),
+				Source:     sourceNodeID,
+				Target:     targetNodeID,
+				SourcePort: sourcePortID,
+				TargetPort: targetPortID,
 			})
 		}
 	}
@@ -175,12 +272,14 @@ func createBinaryTreeTopology() Topology {
 func generalTreeNode(id int) Node {
 	nodeName := fmt.Sprintf("node_%d", id)
 	flavor := selectFlavor(nodeName)
+	image := selectImage(nodeName)
 	return Node{
 		NodeID:        fmt.Sprintf("nd%d", id),
 		Name:          nodeName,
 		Flavor:        flavor,
-		Image:         promptString(fmt.Sprintf("Enter Image for %s: ", nodeName)),
+		Image:         image.ImageID,
 		SecurityRules: []int{22},
+		Ports:         []Port{},
 	}
 }
 
@@ -234,10 +333,16 @@ func createGeneralTreeTopology() Topology {
 	links := []Link{}
 	nodeIDCounter := 1
 
+	// Mapa para llevar la cuenta de los puertos disponibles para cada nodo
+	portMap := make(map[string]int)
+
 	// Create root node
 	root := generalTreeNode(nodeIDCounter)
 	nodes = append(nodes, root)
 	nodeIDCounter++
+
+	// Añadir el primer puerto para el nodo raíz
+	portMap[root.NodeID] = 0
 
 	// Track parent nodes in the current level
 	currentLevelParents := []Node{root}
@@ -254,11 +359,28 @@ func createGeneralTreeTopology() Topology {
 				levelNodes = append(levelNodes, node)
 				nodeIDCounter++
 
+				// Crear puertos para los enlaces entre el padre y el hijo
+				parentPortNumber := portMap[parent.NodeID]
+				childPortNumber := portMap[node.NodeID]
+
+				parentPortID := fmt.Sprintf("%s_port%d", parent.NodeID, parentPortNumber)
+				childPortID := fmt.Sprintf("%s_port%d", node.NodeID, childPortNumber)
+
+				// Añadir los puertos a los nodos
+				parent.Ports = append(parent.Ports, Port{PortID: parentPortID})
+				node.Ports = append(node.Ports, Port{PortID: childPortID})
+
+				// Incrementar el número de puertos disponibles
+				portMap[parent.NodeID]++
+				portMap[node.NodeID]++
+
 				// Create link from parent to child
 				links = append(links, Link{
-					LinkID: fmt.Sprintf("%s_%s", parent.NodeID, node.NodeID),
-					Source: parent.NodeID,
-					Target: node.NodeID,
+					LinkID:     fmt.Sprintf("%s_%s", parent.NodeID, node.NodeID),
+					Source:     parent.NodeID,
+					Target:     node.NodeID,
+					SourcePort: parentPortID,
+					TargetPort: childPortID,
 				})
 			}
 			newLevelParents = append(newLevelParents, levelNodes...)
@@ -290,11 +412,34 @@ func createRingTopology() Topology {
 	numNodes := promptInt("Enter the number of nodes: ")
 	nodes := createNodes(numNodes)
 	var links []Link
+
+	// Map to keep track of the next available port number for each node
+	portMap := make(map[string]int)
 	for i := 0; i < numNodes; i++ {
+
+		sourceNodeID := nodes[i].NodeID
+		targetNodeID := nodes[(i+1)%numNodes].NodeID
+
+		sourcePortNumber := portMap[sourceNodeID]
+		targetPortNumber := portMap[targetNodeID]
+
+		sourcePortID := fmt.Sprintf("%s_port%d", sourceNodeID, sourcePortNumber)
+		targetPortID := fmt.Sprintf("%s_port%d", targetNodeID, targetPortNumber)
+
+		// Add ports to nodes
+		nodes[i].Ports = append(nodes[i].Ports, Port{PortID: sourcePortID})
+		nodes[(i+1)%numNodes].Ports = append(nodes[(i+1)%numNodes].Ports, Port{PortID: targetPortID})
+
+		// Increment port numbers
+		portMap[sourceNodeID]++
+		portMap[targetNodeID]++
+
 		links = append(links, Link{
-			LinkID: fmt.Sprintf("nd%d_nd%d", i+1, (i+1)%numNodes+1),
-			Source: nodes[i].NodeID,
-			Target: nodes[(i+1)%numNodes].NodeID,
+			LinkID:     fmt.Sprintf("nd%d_nd%d", i+1, (i+1)%numNodes+1),
+			Source:     sourceNodeID,
+			Target:     targetNodeID,
+			SourcePort: sourcePortID,
+			TargetPort: targetPortID,
 		})
 	}
 	return Topology{Nodes: nodes, Links: links}
@@ -305,11 +450,34 @@ func createStarTopology() Topology {
 	numNodes := promptInt("Enter the number of peripheral nodes: ") + 1 // Include central node
 	nodes := createNodes(numNodes)
 	var links []Link
+	// Map to keep track of the next available port number for each node
+	portMap := make(map[string]int)
+
 	for i := 1; i < numNodes; i++ {
+
+		sourceNodeID := nodes[0].NodeID
+		targetNodeID := nodes[i].NodeID
+
+		sourcePortNumber := portMap[sourceNodeID]
+		targetPortNumber := portMap[targetNodeID]
+
+		sourcePortID := fmt.Sprintf("%s_port%d", sourceNodeID, sourcePortNumber)
+		targetPortID := fmt.Sprintf("%s_port%d", targetNodeID, targetPortNumber)
+
+		// Add ports to nodes
+		nodes[0].Ports = append(nodes[0].Ports, Port{PortID: sourcePortID})
+		nodes[i].Ports = append(nodes[i].Ports, Port{PortID: targetPortID})
+
+		// Increment port numbers
+		portMap[sourceNodeID]++
+		portMap[targetNodeID]++
+
 		links = append(links, Link{
-			LinkID: fmt.Sprintf("nd1_nd%d", i+1), //  i+1 for rest of the nodes
-			Source: nodes[0].NodeID,              //  central node is node_1
-			Target: nodes[i].NodeID,              //  array index for rest of the nodes
+			LinkID:     fmt.Sprintf("nd1_nd%d", i+1), //  i+1 for rest of the nodes
+			Source:     sourceNodeID,                 //  central node is node_1
+			Target:     targetNodeID,                 //  array index for rest of the nodes
+			SourcePort: sourcePortID,
+			TargetPort: targetPortID,
 		})
 	}
 	return Topology{Nodes: nodes, Links: links}
@@ -460,8 +628,9 @@ func createNodes(numNodes int) []Node {
 			NodeID:        fmt.Sprintf("nd%d", i+1),
 			Name:          nodeName,
 			Flavor:        flavor,
-			Image:         fmt.Sprintf("%s %s", image.Name, image.Version),
+			Image:         image.ImageID,
 			SecurityRules: []int{22}, // Supongamos que siempre hay una regla de seguridad SSH por defecto
+			Ports:         []Port{},
 		}
 	}
 	return nodes
@@ -471,13 +640,34 @@ func createCustomTopology() Topology {
 	numNodes := promptInt("Enter the number of nodes: ")
 	nodes := createNodes(numNodes)
 	var links []Link
+	// Map to keep track of the next available port number for each node
+	portMap := make(map[string]int)
 	for i := 0; i < numNodes; i++ {
 		for j := i + 1; j < numNodes; j++ {
 			if promptString(fmt.Sprintf("Create link between %s and %s? (y/n): ", nodes[i].Name, nodes[j].Name)) == "y" {
+				sourceNodeID := nodes[i].NodeID
+				targetNodeID := nodes[j].NodeID
+
+				sourcePortNumber := portMap[sourceNodeID]
+				targetPortNumber := portMap[targetNodeID]
+
+				sourcePortID := fmt.Sprintf("%s_port%d", sourceNodeID, sourcePortNumber)
+				targetPortID := fmt.Sprintf("%s_port%d", targetNodeID, targetPortNumber)
+
+				// Add ports to nodes
+				nodes[i].Ports = append(nodes[i].Ports, Port{PortID: sourcePortID})
+				nodes[j].Ports = append(nodes[j].Ports, Port{PortID: targetPortID})
+
+				// Increment port numbers
+				portMap[sourceNodeID]++
+				portMap[targetNodeID]++
+
 				links = append(links, Link{
-					LinkID: fmt.Sprintf("nd%d_nd%d", i+1, j+1),
-					Source: nodes[i].NodeID,
-					Target: nodes[j].NodeID,
+					LinkID:     fmt.Sprintf("nd%d_nd%d", i+1, j+1),
+					Source:     sourceNodeID,
+					Target:     targetNodeID,
+					SourcePort: sourcePortID,
+					TargetPort: targetPortID,
 				})
 			}
 		}
@@ -525,8 +715,8 @@ func printTopologyTable(topology Topology) {
 		fmt.Printf("%-20s %-20s %-20d %-20.1f %-20.1f", node.NodeID, node.Name, node.Flavor.CPU, node.Flavor.Memory, node.Flavor.Storage)
 		linkedNodes := []string{}
 		for _, link := range topology.Links {
-			if link.Source == node.Name || link.Target == node.Name {
-				if link.Source == node.Name {
+			if link.Source == node.NodeID || link.Target == node.NodeID {
+				if link.Source == node.NodeID {
 					linkedNodes = append(linkedNodes, link.Target)
 				} else {
 					linkedNodes = append(linkedNodes, link.Source)
