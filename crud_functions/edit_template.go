@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -331,7 +330,8 @@ flag:
 
 			images, err := fetchImages()
 			if err != nil {
-				log.Fatalf("Error fetching images: %v", err)
+				fmt.Printf("Error fetching images: %v", err)
+				continue flag
 			}
 			fmt.Println("Available images:")
 			for i, image := range images {
@@ -342,11 +342,13 @@ flag:
 
 			flavors, err := fetchFlavors()
 			if err != nil {
-				log.Fatalf("Error fetching flavors: %v", err)
+				fmt.Printf("Error fetching flavors: %v", err)
+				continue flag
 			}
 			fmt.Println("Available flavors:")
 			for i, flavor := range flavors {
 				fmt.Printf("%d. %s (CPU: %d, Memory: %.1fGB, Storage: %.1fGB)\n", i+1, flavor.Name, flavor.CPU, flavor.Memory, flavor.Storage)
+				continue flag
 			}
 			flavorChoice := promptInt("Enter the number of the flavor: ")
 
@@ -369,7 +371,8 @@ flag:
 
 			flavors, err := fetchFlavors()
 			if err != nil {
-				log.Fatalf("Error fetching flavors: %v", err)
+				fmt.Printf("Error fetching flavors: %v", err)
+				continue flag
 			}
 			fmt.Println("Available flavors:")
 			for i, flavor := range flavors {
