@@ -7,6 +7,7 @@ app = Flask(__name__)
 # Configuración de la conexión a MongoDB
 client = MongoClient("localhost", 27017)
 
+predefined_topologies = ['anillo','bus','lineal','arbol binario','malla']
 
 def serialize_document(doc):
     # Crear una copia del documento original para evitar modificar mientras iteramos
@@ -22,18 +23,43 @@ def serialize_document(doc):
 
 # Endpoint para crear una nueva plantilla / working
 @app.route("/slices", methods=["POST"])
-def crear_plantilla():
+def crear_slice():
     db = client.cloud
     collection = db.slices
-    new_template = request.json
-    result = collection.insert_one(new_template)
+    new_slice = request.json
+    result = collection.insert_one(new_slice)
     if result.inserted_id:
-        return jsonify(
-            {
-                "msg": f"Slice with id {result.inserted_id} created successfully",
-                "result": "success",
-            }
-        )
+        
+        if new_slice['deployment_type']=='openstack':
+            # implementa openstack . solo predefinidas 
+            if new_slice['topology_type'] in predefined_topologies:
+                #create_openstack_topology(new_slice)
+                return jsonify(
+                    {
+                        "msg": f"Slice with id {result.inserted_id} created successfully",
+                        "result": "success",
+                    }
+                )
+            else:
+                # si no es predefinida, crea una generica. 
+                #create_openstack_generic(new_slice)
+                return jsonify(
+                    {
+                        "msg": f"Slice with id {result.inserted_id} created successfully",
+                        "result": "success",
+                    }
+                )
+        else:
+            # implementa linux
+            
+            return jsonify(
+                {
+                    "msg": f"Slice with id {result.inserted_id} created successfully",
+                    "result": "success",
+                }
+            )
+        
+       
     else:
         response = jsonify(
             {
@@ -47,7 +73,7 @@ def crear_plantilla():
 
 # Endpoint para listar todas las plantillas / working
 @app.route("/slices", methods=["GET"])
-def listar_plantillas():
+def listar_slices():
     db = client.cloud
     collection = db.slices
 
