@@ -39,15 +39,26 @@ def execute_on_worker(worker_address, script, username, password):
     ssh_client = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh_client.connect(hostname=worker_address, username=username, password=password)
+    try:
+        # Execute the command
+        stdin, stdout, stderr = ssh_client.exec_command(script, get_pty=True)
 
-    stdin, stdout, stderr = ssh_client.exec_command(script, get_pty=True)
-    stdin.write(password + "\n")
-    stdin.flush()
-    print(stderr.read().decode("utf-8"))
-    print(stdout.read().decode("utf-8"))
-    output = stdout.read().decode("utf-8")
-    ssh_client.close()
-    return output
+        # Provide password for sudo if requested
+        stdin.write(password + "\n")
+        stdin.flush()
+
+        # Read the output from stdout
+        output = stdout.read().decode("utf-8")
+
+        # Read any error output from stderr (if needed)
+        error = stderr.read().decode("utf-8")
+        if error:
+            print(f"Error encountered: {error}")
+
+        return output.strip()
+
+    finally:
+        ssh_client.close()
 
 
 # def calculate_subnet_mask(number_of_nodes):
