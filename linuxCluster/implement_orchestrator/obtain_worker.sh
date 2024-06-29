@@ -19,6 +19,8 @@ ps aux | grep qemu | grep "id=.*vlan${vlan_number}-tap" | while read -r line; do
 	vnc_port=$(echo $line | grep -oP "(?<=-vnc 0.0.0.0:)[0-9]+")
 	# Calculate the open VNC port
 	open_port=$((5900 + vnc_port))
+	# Obtener ip de ens3
+	worker_ip=$(ip a | grep ens3 | grep -Eo 'inet 10\.0\.0\.(30|40|50)' | awk '{print $2}')
 	# Print the isolated id parameter part, the process ID, and the open VNC port
-	echo "$id_param $process_id $open_port"
+	echo "$id_param $process_id $open_port $worker_ip"
 done

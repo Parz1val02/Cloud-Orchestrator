@@ -12,6 +12,18 @@ from bson.objectid import ObjectId
 
 SLICE_ID = "667790af65d36d25bb0779f6"
 client = MongoClient("localhost", 27017)
+db = client.cloud
+collection = db.slices
+# Direcciones y credenciales de los nodos
+worker_addresses = ["10.0.0.30", "10.0.0.40", "10.0.0.50"]
+username = "ubuntu"
+password = "ubuntu"
+
+# Parámetros para los scripts
+headnode_ovs_name = "br-vlan"
+headnode_interfaces = "ens5"  # Coloca las interfaces del HeadNode aquí
+worker_ovs_name = "br-vlan"
+worker_interfaces = "ens4"  # Coloca las interfaces de los Workers aquí
 
 
 # ejecución de scripts en el HeadNode local
@@ -175,16 +187,6 @@ def main():
     # print(f"Last IP: {last_ip}")
     # print(f"Subnet Mask: {subnet_mask} (/ {network_bits})")
 
-    # Direcciones y credenciales de los nodos
-    worker_addresses = ["10.0.0.30", "10.0.0.40", "10.0.0.50"]
-    username = "ubuntu"
-    password = "ubuntu"
-
-    # Parámetros para los scripts
-    headnode_ovs_name = "br-vlan"
-    headnode_interfaces = "ens5"  # Coloca las interfaces del HeadNode aquí
-    worker_ovs_name = "br-vlan"
-    worker_interfaces = "ens4"  # Coloca las interfaces de los Workers aquí
     vlan_id = str(random.randint(1, 500))
 
     vlan_parameters = [
@@ -257,11 +259,17 @@ def main():
             print(last_line)
             parts = last_line.split()  # Split the last line by whitespace
 
-            if len(parts) == 3:
+            if len(parts) == 4:
                 var1 = parts[0]  # node
                 var2 = parts[1]  # qemu process
                 var3 = parts[2]  # vnc port
-                node_info = {"node_id": var1, "process": var2, "vnc": var3}
+                var4 = parts[3]  # vnc port
+                node_info = {
+                    "node_id": var1,
+                    "process": var2,
+                    "vnc": var3,
+                    "worker": var4,
+                }
                 list_of_nodes.append(node_info)
 
             else:
@@ -285,23 +293,44 @@ def main():
             if node["node_id"] == node2["node_id"]:
                 node["process"] = node2["process"]
                 node["vnc"] = node2["vnc"]
+                node["worker"] = node2["worker"]
                 break
     updated_json_data["vlan_id"] = vlan_id
     print(json.dumps(updated_json_data, indent=2))
 
     print("slice_id value:", slice_id_value)
-    db = client.cloud
-    collection = db.slices
     plantilla_actualizada = updated_json_data
 
     result = collection.update_one(
         {"_id": ObjectId(slice_id_value)}, {"$set": plantilla_actualizada}
     )
     if result.modified_count == 1:
-        print(f"Template with template id {slice_id_value} updated successfully")
+        print(f"Slice with slice id {slice_id_value} updated successfully")
     else:
-        print(f"Template with template id {slice_id_value} not updated due to error")
+        print(f"Slice with slice id {slice_id_value} not updated due to error")
     print("Orquestador de cómputo inicializado exitosamente.")
+
+
+def delete():
+    slice = collection.find_one({"_id": ObjectId(SLICE_ID)})
+    if slice:
+        vlan = slice["vlan_id"]
+        execute_on_headnode(
+            f"bash implement_orchestrator/delete_headnode.sh {vlan} {headnode_ovs_name}"
+        )
+        for node in slice["topology"]["nodes"]:
+            node_id = node["node_id"]
+            process = node["process"]
+            worker = node["worker"]
+            execute_on_worker(
+                worker,
+                f"sudo -S bash delete_worker.sh {vlan} {headnode_ovs_name} {node_id} {process}",
+                username,
+                password,
+            )
+
+    else:
+        print(f"Slice with slice id {SLICE_ID} not found")
 
 
 if __name__ == "__main__":
