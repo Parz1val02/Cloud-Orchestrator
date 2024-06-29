@@ -1,19 +1,17 @@
+import json
 import paramiko
-import sys
 import subprocess
 import random
-import math
-import ipaddress
+import copy
+from flask import Flask, request, jsonify
+from pymongo import MongoClient
+from bson.objectid import ObjectId
 
+# import math
+# import ipaddress
 
-# Conexión SSH y ejecución de scripts en el HeadNode
-# def execute_on_headnode(script):
-#    ssh_client = paramiko.SSHClient()
-#    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-#    ssh_client.connect(headnode_address, username=username, password=password)
-#    stdin, stdout, stderr = ssh_client.exec_command(script)
-#    print(stdout.read().decode("utf-8"))
-#    ssh_client.close()
+SLICE_ID = "667790af65d36d25bb0779f6"
+client = MongoClient("localhost", 27017)
 
 
 # ejecución de scripts en el HeadNode local
@@ -45,32 +43,26 @@ def execute_on_worker(worker_address, script, username, password):
     ssh_client = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh_client.connect(hostname=worker_address, username=username, password=password)
+    try:
+        # Execute the command
+        stdin, stdout, stderr = ssh_client.exec_command(script, get_pty=True)
 
-    # stdin, stdout, stderr = ssh_client.exec_command("sudo -i")
-    # Proporcionar la contraseña a través de stdin
+        # Provide password for sudo if requested
+        stdin.write(password + "\n")
+        stdin.flush()
 
-    # Establecer una shell interactiva
-    # ssh_session = ssh_client.invoke_shell()
+        # Read the output from stdout
+        output = stdout.read().decode("utf-8")
 
-    # ssh_session.send('cd /home/ubuntu\n')
-    # while not ssh_session.recv_ready():
-    #    pass
-    # ssh_session.send(script + '\n')
-    # Esperar a que se solicite la contraseña
-    # while not ssh_session.recv_ready():
-    #    pass
-    # Enviar la contraseña
-    # ssh_session.send(password + '\n')
+        # Read any error output from stderr (if needed)
+        error = stderr.read().decode("utf-8")
+        if error:
+            print(f"Error encountered: {error}")
 
-    # stdin, stdout, stderr = ssh_client.exec_command("cd /home/ubuntu")
-    stdin, stdout, stderr = ssh_client.exec_command(script, get_pty=True)
-    stdin.write(password + "\n")
-    stdin.flush()
-    print(stderr.read().decode("utf-8"))
-    print(stdout.read().decode("utf-8"))
-    # output = ssh_session.recv(65535).decode('utf-8')
-    # print(output)
-    ssh_client.close()
+        return output.strip()
+
+    finally:
+        ssh_client.close()
 
 
 # def calculate_subnet_mask(number_of_nodes):
@@ -115,15 +107,66 @@ def execute_on_worker(worker_address, script, username, password):
 
 
 def main():
-    if len(sys.argv) != 4:
-        print("Usage: python script.py <slice_id> <number_of_nodes> <internet>")
-        sys.exit(1)
-
-    try:
-        number_of_nodes = int(sys.argv[2])
-    except ValueError:
-        print("Please provide a valid integer for the number of nodes.")
-        sys.exit(1)
+    json_data = {
+        "slice_id": "667790af65d36d25bb0779f6",
+        "created_at": "2024-06-24T02:35:37.1113996Z",
+        "description": "descr",
+        "name": "name",
+        "topology": {
+            "links": [
+                {"link_id": "nd1_nd2", "source": "node_1", "target": "node_2"},
+                {"link_id": "nd2_nd3", "source": "node_2", "target": "node_3"},
+                {"link_id": "nd3_nd1", "source": "node_3", "target": "node_1"},
+            ],
+            "nodes": [
+                {
+                    "node_id": "nd1",
+                    "name": "node_1",
+                    "image": "Ubuntu 20.04 LTS",
+                    "flavor": {
+                        "id": "665275b98c45f0c2b8a2e230",
+                        "name": "t2.micro",
+                        "cpu": 1,
+                        "memory": 0.5,
+                        "storage": 1,
+                    },
+                    "security_rules": [22],
+                },
+                {
+                    "node_id": "nd2",
+                    "name": "node_2",
+                    "image": "Ubuntu 20.04 LTS",
+                    "flavor": {
+                        "id": "665275b98c45f0c2b8a2e230",
+                        "name": "t2.micro",
+                        "cpu": 1,
+                        "memory": 0.5,
+                        "storage": 1,
+                    },
+                    "security_rules": [22],
+                },
+                {
+                    "node_id": "nd3",
+                    "name": "node_3",
+                    "image": "Ubuntu 20.04 LTS",
+                    "flavor": {
+                        "id": "665275b98c45f0c2b8a2e230",
+                        "name": "t2.micro",
+                        "cpu": 1,
+                        "memory": 0.5,
+                        "storage": 1,
+                    },
+                    "security_rules": [22],
+                },
+            ],
+        },
+        "user_id": "6640550a53c1187a6899a5a9",
+        "topology_type": "anillo",
+        "availability_zone": "ga",
+        "deployment_type": "linux",
+        "internet": False,
+    }
+    list_of_nodes = []
 
     # network_bits, subnet_mask = calculate_subnet_mask(number_of_nodes)
     # first_ip, last_ip = calculate_ip_range(network_bits)
@@ -138,10 +181,9 @@ def main():
     password = "ubuntu"
 
     # Parámetros para los scripts
-    # slice_id = sys.argv[1]
-    headnode_ovs_name = "br-int"
+    headnode_ovs_name = "br-vlan"
     headnode_interfaces = "ens5"  # Coloca las interfaces del HeadNode aquí
-    worker_ovs_name = "br-int"
+    worker_ovs_name = "br-vlan"
     worker_interfaces = "ens4"  # Coloca las interfaces de los Workers aquí
     vlan_id = str(random.randint(1, 500))
 
@@ -151,12 +193,14 @@ def main():
             vlan_id,
             "192.168.0.0/24",
             "192.168.0.3,192.168.0.100,255.255.255.255",
+            headnode_ovs_name,
         )
     ]
+    nodes = json_data["topology"]["nodes"]
     vm_parameters = []
-    for i in range(number_of_nodes):
-        vm_name = f"vm{vlan_id}{i}"
-        bridge = "br-int"
+    for i in nodes:
+        vm_name = f"{i['node_id']}"
+        bridge = "br-linux"
         vlan_id = vlan_id
         portga = random.randint(1, 500)
         port = str(5900 + portga)
@@ -185,7 +229,7 @@ def main():
             password,
         )
 
-    assignments = assign_nodes_to_workers(number_of_nodes, worker_addresses)
+    assignments = assign_nodes_to_workers(len(nodes), worker_addresses)
 
     for worker, assigned_nodes in assignments.items():
         print(f"{worker} is assigned nodes: {', '.join(assigned_nodes)}")
@@ -198,13 +242,65 @@ def main():
                 password,
             )
 
-    internet = int(sys.argv[3])
-    if internet == 1:
-        for vlan_param in vlan_parameters:
-            vlan_id = vlan_param[1]
-            print(f"implement_orchestrator/vlan_internet.sh {vlan_id}")
-            execute_on_headnode(f"implement_orchestrator/vlan_internet.sh {vlan_id}")
+    for worker_address in worker_addresses:
+        print(f"sudo -S bash obtain_worker.sh {vlan_id}")
+        output = execute_on_worker(
+            worker_address,
+            f"sudo -S bash obtain_worker.sh {vlan_id}",
+            username,
+            password,
+        )
+        lines = output.strip().splitlines()
+        print(lines)
+        if lines:
+            last_line = lines[-1]
+            print(last_line)
+            parts = last_line.split()  # Split the last line by whitespace
 
+            if len(parts) == 3:
+                var1 = parts[0]  # node
+                var2 = parts[1]  # qemu process
+                var3 = parts[2]  # vnc port
+                node_info = {"node_id": var1, "process": var2, "vnc": var3}
+                list_of_nodes.append(node_info)
+
+            else:
+                print("Last line does not contain three strings separated by spaces.")
+
+        else:
+            print("Empty string")
+
+    # if internet == 1:
+    #    for vlan_param in vlan_parameters:
+    #        vlan_id = vlan_param[1]
+    #        print(f"implement_orchestrator/vlan_internet.sh {vlan_id}")
+    #        execute_on_headnode(f"implement_orchestrator/vlan_internet.sh {vlan_id}")
+
+    slice_id_value = json_data.pop("slice_id", None)
+
+    updated_json_data = copy.deepcopy(json_data)
+
+    for node in updated_json_data["topology"]["nodes"]:
+        for node2 in list_of_nodes:
+            if node["node_id"] == node2["node_id"]:
+                node["process"] = node2["process"]
+                node["vnc"] = node2["vnc"]
+                break
+    updated_json_data["vlan_id"] = vlan_id
+    print(json.dumps(updated_json_data, indent=2))
+
+    print("slice_id value:", slice_id_value)
+    db = client.cloud
+    collection = db.slices
+    plantilla_actualizada = updated_json_data
+
+    result = collection.update_one(
+        {"_id": ObjectId(slice_id_value)}, {"$set": plantilla_actualizada}
+    )
+    if result.modified_count == 1:
+        print(f"Template with template id {slice_id_value} updated successfully")
+    else:
+        print(f"Template with template id {slice_id_value} not updated due to error")
     print("Orquestador de cómputo inicializado exitosamente.")
 
 
