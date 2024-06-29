@@ -67,4 +67,3 @@ ip netns exec "$NombreRed-dhcp" dnsmasq --interface="$NombreRed-veth0" --dhcp-ra
 # Mostrar información
 echo "Red interna $VLAN_ID del orquestador creada correctamente."
 sleep 1
-

@@ -1,22 +1,19 @@
 #!/bin/bash
 
 # parámetros
-VLAN_ID="$1"  # ID de la VLAN para la cual se proporcionará acceso a Internet
-InternetInterface="ens3"  # Interfaz de red conectada a Internet en el HeadNode
+VLAN_ID="$1"             # ID de la VLAN para la cual se proporcionará acceso a Internet
+InternetInterface="ens3" # Interfaz de red conectada a Internet en el HeadNode
 
 # dirección IP de la interfaz de Internet
 # InternetIP=$(ip addr show dev $InternetInterface | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
-
-
-
 
 # Obtener el nombre de la interfaz asociada con la VLAN
 interface_name=$(sudo ovs-vsctl list port | grep "vlan$VLAN_ID" | awk '{print $3}' | tail -n 1)
 # Obtener la información de la dirección IP y la máscara de subred de la interfaz
 interface_info=$(ip addr show dev $interface_name)
 if [ -z "$interface_info" ]; then
-    echo "No se encontró ninguna interfaz con VLAN ID $VLAN_ID"
-    exit 1
+	echo "No se encontró ninguna interfaz con VLAN ID $VLAN_ID"
+	exit 1
 fi
 
 echo "interface info : $interface_info"
@@ -33,14 +30,13 @@ echo "Dirección de red asociada a la VLAN ID $VLAN_ID (formato CIDR): $ip_netwo
 vlan_cidr="$ip_network/$subnet_mask"
 echo $vlan_cidr
 
-
 # regla de iptables para habilitar el enrutamiento
 iptables -I FORWARD -s $vlan_cidr -j ACCEPT
 iptables -I FORWARD -d $vlan_cidr -j ACCEPT
 iptables -t nat -A POSTROUTING -s $vlan_cidr -j MASQUERADE
 
 # Habilitar el enrutamiento IPv4
-echo 1 > /proc/sys/net/ipv4/ip_forward
+echo 1 >/proc/sys/net/ipv4/ip_forward
 
 # Asegurarse de que el tráfico de retorno esté permitido
 # iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
