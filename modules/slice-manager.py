@@ -1,13 +1,14 @@
 from flask import Flask, request, jsonify
 from pymongo import MongoClient
 from bson.objectid import ObjectId
+import tests as openstack_driver
 
 app = Flask(__name__)
 
 # Configuración de la conexión a MongoDB
 client = MongoClient("localhost", 27017)
 
-predefined_topologies = ['anillo','bus','lineal','arbol binario','malla']
+
 
 def serialize_document(doc):
     # Crear una copia del documento original para evitar modificar mientras iteramos
@@ -20,41 +21,58 @@ def serialize_document(doc):
                 doc["slice_id"] = doc.pop(key)
     return doc  # Función para serializar documentos MongoDB / necesario para ser enviados como respuesta del endpoint / working
 
+def serialize_template(template):
+    doc_copy = template.copy()
+    for key, value in doc_copy.items():
+        if isinstance(value, ObjectId):
+            template[key] = str(value)
+            if key != "template_id":
+                template["template_id"] = template.pop(key)
+    return template  
+
+def obtenerTemplateById(template_id):
+    db = client.cloud
+    collection = db.templates
+    template = collection.find_one({"_id": ObjectId(template_id)})
+     # Eliminar el campo '_id' si existe
+    if '_id' in template:
+        del template['_id']
+
+    return template
+    
 
 # Endpoint para crear una nueva plantilla / working
 @app.route("/slices", methods=["POST"])
 def crear_slice():
+    new_slice_info = request.json
+    new_slice = obtenerTemplateById(new_slice_info['template_id'])
+    new_slice.update(new_slice_info)
+
     db = client.cloud
     collection = db.slices
-    new_slice = request.json
     result = collection.insert_one(new_slice)
     if result.inserted_id:
         
         if new_slice['deployment_type']=='openstack':
-            # implementa openstack . solo predefinidas 
-            if new_slice['topology_type'] in predefined_topologies:
-                #create_openstack_topology(new_slice)
-                return jsonify(
-                    {
-                        "msg": f"Slice with id {result.inserted_id} created successfully",
-                        "result": "success",
-                    }
-                )
-            else:
-                # si no es predefinida, crea una generica. 
-                #create_openstack_generic(new_slice)
-                return jsonify(
-                    {
-                        "msg": f"Slice with id {result.inserted_id} created successfully",
-                        "result": "success",
-                    }
-                )
+            # implementa openstack .  
+            
+            user_name = request.headers["X-User-Username"]
+            openstack_driver.openstackDeployment(new_slice,user_name)
+            
+            
+            return jsonify(
+                {
+                    "msg": f"Slice with id {result.inserted_id} created successfully in OpenStack",
+                    "result": "success",
+                }
+            )
+        
         else:
             # implementa linux
             
             return jsonify(
                 {
-                    "msg": f"Slice with id {result.inserted_id} created successfully",
+                    "msg": f"Slice with id {result.inserted_id} created successfully in Linux Cluster",
                     "result": "success",
                 }
             )

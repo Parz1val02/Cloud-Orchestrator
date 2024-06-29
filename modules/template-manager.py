@@ -259,6 +259,18 @@ def listar_images():
     else:
         return jsonify({"result": "success", "msg": "No available images to display"})
 
+# Endpoint para listar todos los avz
+@app.route("/templates/avz", methods=["GET"])
+def listar_avzs():
+    db = client.cloud
+    collection = db.availability_zones
+    avzs = [serialize_document_not_template(avz) for avz in collection.find()]
+    if avzs:
+        return jsonify({"result": "success", "availability_zones": avzs})
+    else:
+        return jsonify({"result": "success", "msg": "No available images to display"})
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)
