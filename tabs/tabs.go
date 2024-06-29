@@ -169,7 +169,7 @@ func SliceInfoTabs(sliceId, token string) {
 	serverPort := 4444
 	var sliceById structs.ListSliceById
 	var jsonresp structs.NormalResponse
-	requestURL := fmt.Sprintf("http://localhost:%d/sliceservice/slice/%s", serverPort, sliceId)
+	requestURL := fmt.Sprintf("http://localhost:%d/sliceservice/slices/%s", serverPort, sliceId)
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", requestURL, nil)
 	if err != nil {
