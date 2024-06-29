@@ -178,7 +178,7 @@ def main():
     nodes = json_data["topology"]["nodes"]
     vm_parameters = []
     for i in nodes:
-        vm_name = f"{i["node_id"]}vlan{vlan_id}"
+        vm_name = f"{i['node_id']}vlan{vlan_id}"
         bridge = "br-linux"
         vlan_id = vlan_id
         portga = random.randint(1, 500)
