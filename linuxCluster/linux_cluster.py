@@ -200,7 +200,7 @@ def main():
     vm_parameters = []
     for i in nodes:
         vm_name = f"{i['node_id']}"
-        bridge = "br-linux"
+        bridge = worker_ovs_name
         vlan_id = vlan_id
         portga = random.randint(1, 500)
         port = str(5900 + portga)
