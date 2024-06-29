@@ -77,238 +77,133 @@ def execute_on_worker(worker_address, script, username, password):
         ssh_client.close()
 
 
-# def calculate_subnet_mask(number_of_nodes):
-#    # Include the reserved addresses in the count
-#    total_required_addresses = number_of_nodes + 2  # +2 for the reserved addresses
-#
-#    # Calculate the number of bits needed for the total required addresses
-#    required_bits = math.ceil(math.log2(total_required_addresses))
-#
-#    # Calculate the number of host bits
-#    host_bits = max(0, required_bits)
-#
-#    # Calculate the number of network bits
-#    network_bits = 32 - host_bits
-#
-#    # Calculate the subnet mask
-#    subnet_mask = (0xFFFFFFFF >> host_bits) << host_bits
-#
-#    # Format the subnet mask in the familiar dot-decimal notation
-#    subnet_mask = (
-#        subnet_mask >> 24 & 0xFF,
-#        subnet_mask >> 16 & 0xFF,
-#        subnet_mask >> 8 & 0xFF,
-#        subnet_mask & 0xFF,
-#    )
-#    subnet_mask_str = ".".join(map(str, subnet_mask))
-#
-#    return network_bits, subnet_mask_str
-#
-#
-# def calculate_ip_range(network_bits):
-#    # Define the base network address
-#    network = ipaddress.IPv4Network(f"192.168.0.0/{network_bits}", strict=False)
-#    # Extract all the IP addresses in the network
-#    all_ips = list(network.hosts())
-#
-#    # Assign the first and last IP addresses
-#    first_ip = all_ips[0]
-#    last_ip = all_ips[-1]
-#
-#    return str(first_ip), str(last_ip)
+def create():
+    slice = collection.find_one({"_id": ObjectId(SLICE_ID)})
+    if slice:
+        list_of_nodes = []
+        vlan_id = str(random.randint(1, 500))
+        vlan_parameters = [
+            (
+                "vlan" + vlan_id,
+                vlan_id,
+                "192.168.0.0/24",
+                "192.168.0.3,192.168.0.100,255.255.255.255",
+                headnode_ovs_name,
+            )
+        ]
+        nodes = slice["topology"]["nodes"]
+        vm_parameters = []
+        for i in nodes:
+            vm_name = f"{i['node_id']}"
+            bridge = worker_ovs_name
+            vlan_id = vlan_id
+            portga = random.randint(1, 500)
+            port = str(5900 + portga)
+            vm_parameters.append([vm_name, bridge, vlan_id, port])
 
-
-def main():
-    json_data = {
-        "slice_id": "667790af65d36d25bb0779f6",
-        "created_at": "2024-06-24T02:35:37.1113996Z",
-        "description": "descr",
-        "name": "name",
-        "topology": {
-            "links": [
-                {"link_id": "nd1_nd2", "source": "node_1", "target": "node_2"},
-                {"link_id": "nd2_nd3", "source": "node_2", "target": "node_3"},
-                {"link_id": "nd3_nd1", "source": "node_3", "target": "node_1"},
-            ],
-            "nodes": [
-                {
-                    "node_id": "nd1",
-                    "name": "node_1",
-                    "image": "Ubuntu 20.04 LTS",
-                    "flavor": {
-                        "id": "665275b98c45f0c2b8a2e230",
-                        "name": "t2.micro",
-                        "cpu": 1,
-                        "memory": 0.5,
-                        "storage": 1,
-                    },
-                    "security_rules": [22],
-                },
-                {
-                    "node_id": "nd2",
-                    "name": "node_2",
-                    "image": "Ubuntu 20.04 LTS",
-                    "flavor": {
-                        "id": "665275b98c45f0c2b8a2e230",
-                        "name": "t2.micro",
-                        "cpu": 1,
-                        "memory": 0.5,
-                        "storage": 1,
-                    },
-                    "security_rules": [22],
-                },
-                {
-                    "node_id": "nd3",
-                    "name": "node_3",
-                    "image": "Ubuntu 20.04 LTS",
-                    "flavor": {
-                        "id": "665275b98c45f0c2b8a2e230",
-                        "name": "t2.micro",
-                        "cpu": 1,
-                        "memory": 0.5,
-                        "storage": 1,
-                    },
-                    "security_rules": [22],
-                },
-            ],
-        },
-        "user_id": "6640550a53c1187a6899a5a9",
-        "topology_type": "anillo",
-        "availability_zone": "ga",
-        "deployment_type": "linux",
-        "internet": False,
-    }
-    list_of_nodes = []
-
-    # network_bits, subnet_mask = calculate_subnet_mask(number_of_nodes)
-    # first_ip, last_ip = calculate_ip_range(network_bits)
-
-    # print(f"First IP: {first_ip}")
-    # print(f"Last IP: {last_ip}")
-    # print(f"Subnet Mask: {subnet_mask} (/ {network_bits})")
-
-    vlan_id = str(random.randint(1, 500))
-
-    vlan_parameters = [
-        (
-            "vlan" + vlan_id,
-            vlan_id,
-            "192.168.0.0/24",
-            "192.168.0.3,192.168.0.100,255.255.255.255",
-            headnode_ovs_name,
+        # Ejecución de los scripts en el HeadNode
+        print(
+            f"bash init_orchestrator/init_headnode.sh {headnode_ovs_name} {headnode_interfaces}"
         )
-    ]
-    nodes = json_data["topology"]["nodes"]
-    vm_parameters = []
-    for i in nodes:
-        vm_name = f"{i['node_id']}"
-        bridge = worker_ovs_name
-        vlan_id = vlan_id
-        portga = random.randint(1, 500)
-        port = str(5900 + portga)
-        vm_parameters.append([vm_name, bridge, vlan_id, port])
-
-    # Ejecución de los scripts en el HeadNode
-    print(
-        f"bash init_orchestrator/init_headnode.sh {headnode_ovs_name} {headnode_interfaces}"
-    )
-    execute_on_headnode(
-        f"bash init_orchestrator/init_headnode.sh {headnode_ovs_name} {headnode_interfaces}"
-    )
-    for vlan_param in vlan_parameters:
-        print(f"bash init_orchestrator/internal_net_headnode.sh {' '.join(vlan_param)}")
         execute_on_headnode(
-            f"bash init_orchestrator/internal_net_headnode.sh {' '.join(vlan_param)}"
+            f"bash init_orchestrator/init_headnode.sh {headnode_ovs_name} {headnode_interfaces}"
         )
+        for vlan_param in vlan_parameters:
+            print(
+                f"bash init_orchestrator/internal_net_headnode.sh {' '.join(vlan_param)}"
+            )
+            execute_on_headnode(
+                f"bash init_orchestrator/internal_net_headnode.sh {' '.join(vlan_param)}"
+            )
 
-    # Ejecución de los scripts en los Workers
-    for worker_address in worker_addresses:
-        print(f"sudo -S bash init_worker.sh {worker_ovs_name} {worker_interfaces}")
-        execute_on_worker(
-            worker_address,
-            f"sudo -S bash init_worker.sh {worker_ovs_name} {worker_interfaces}",
-            username,
-            password,
-        )
-
-    assignments = assign_nodes_to_workers(len(nodes), worker_addresses)
-
-    for worker, assigned_nodes in assignments.items():
-        print(f"{worker} is assigned nodes: {', '.join(assigned_nodes)}")
-        for i in assigned_nodes:
-            print(f"sudo -S bash vm_script.sh {' '.join(vm_parameters[int(i)-1])}")
+        # Ejecución de los scripts en los Workers
+        for worker_address in worker_addresses:
+            print(f"sudo -S bash init_worker.sh {worker_ovs_name} {worker_interfaces}")
             execute_on_worker(
-                worker,
-                f"sudo -S bash vm_script.sh {' '.join(vm_parameters[int(i)-1])}",
+                worker_address,
+                f"sudo -S bash init_worker.sh {worker_ovs_name} {worker_interfaces}",
                 username,
                 password,
             )
 
-    for worker_address in worker_addresses:
-        print(f"sudo -S bash obtain_worker.sh {vlan_id}")
-        output = execute_on_worker(
-            worker_address,
-            f"sudo -S bash obtain_worker.sh {vlan_id}",
-            username,
-            password,
-        )
-        lines = output.strip().splitlines()
-        print(lines)
-        if lines:
-            last_line = lines[-1]
-            print(last_line)
-            parts = last_line.split()  # Split the last line by whitespace
+        assignments = assign_nodes_to_workers(len(nodes), worker_addresses)
 
-            if len(parts) == 4:
-                var1 = parts[0]  # node
-                var2 = parts[1]  # qemu process
-                var3 = parts[2]  # vnc port
-                var4 = parts[3]  # vnc port
-                node_info = {
-                    "node_id": var1,
-                    "process": var2,
-                    "vnc": var3,
-                    "worker": var4,
-                }
-                list_of_nodes.append(node_info)
+        for worker, assigned_nodes in assignments.items():
+            print(f"{worker} is assigned nodes: {', '.join(assigned_nodes)}")
+            for i in assigned_nodes:
+                print(f"sudo -S bash vm_script.sh {' '.join(vm_parameters[int(i)-1])}")
+                execute_on_worker(
+                    worker,
+                    f"sudo -S bash vm_script.sh {' '.join(vm_parameters[int(i)-1])}",
+                    username,
+                    password,
+                )
+
+        for worker_address in worker_addresses:
+            print(f"sudo -S bash obtain_worker.sh {vlan_id}")
+            output = execute_on_worker(
+                worker_address,
+                f"sudo -S bash obtain_worker.sh {vlan_id}",
+                username,
+                password,
+            )
+            lines = output.strip().splitlines()
+            print(lines)
+            if lines:
+                last_line = lines[-1]
+                print(last_line)
+                parts = last_line.split()  # Split the last line by whitespace
+
+                if len(parts) == 4:
+                    var1 = parts[0]  # node
+                    var2 = parts[1]  # qemu process
+                    var3 = parts[2]  # vnc port
+                    var4 = parts[3]  # vnc port
+                    node_info = {
+                        "node_id": var1,
+                        "process": var2,
+                        "vnc": var3,
+                        "worker": var4,
+                    }
+                    list_of_nodes.append(node_info)
+
+                else:
+                    print(
+                        "Last line does not contain three strings separated by spaces."
+                    )
 
             else:
-                print("Last line does not contain three strings separated by spaces.")
+                print("Empty string")
 
+        # if internet == 1:
+        #    for vlan_param in vlan_parameters:
+        #        vlan_id = vlan_param[1]
+        #        print(f"implement_orchestrator/vlan_internet.sh {vlan_id}")
+        #        execute_on_headnode(f"implement_orchestrator/vlan_internet.sh {vlan_id}")
+
+        slice_id_value = slice.pop("slice_id", None)
+
+        updated_slice_data = copy.deepcopy(slice)
+
+        for node in updated_slice_data["topology"]["nodes"]:
+            for node2 in list_of_nodes:
+                if node["node_id"] == node2["node_id"]:
+                    node["process"] = node2["process"]
+                    node["vnc"] = node2["vnc"]
+                    node["worker"] = node2["worker"]
+                    break
+        updated_slice_data["vlan_id"] = vlan_id
+        print(json.dumps(updated_slice_data, indent=2))
+        result = collection.update_one(
+            {"_id": ObjectId(slice_id_value)}, {"$set": updated_slice_data}
+        )
+        if result.modified_count == 1:
+            print(f"Slice with slice id {slice_id_value} updated successfully")
         else:
-            print("Empty string")
-
-    # if internet == 1:
-    #    for vlan_param in vlan_parameters:
-    #        vlan_id = vlan_param[1]
-    #        print(f"implement_orchestrator/vlan_internet.sh {vlan_id}")
-    #        execute_on_headnode(f"implement_orchestrator/vlan_internet.sh {vlan_id}")
-
-    slice_id_value = json_data.pop("slice_id", None)
-
-    updated_json_data = copy.deepcopy(json_data)
-
-    for node in updated_json_data["topology"]["nodes"]:
-        for node2 in list_of_nodes:
-            if node["node_id"] == node2["node_id"]:
-                node["process"] = node2["process"]
-                node["vnc"] = node2["vnc"]
-                node["worker"] = node2["worker"]
-                break
-    updated_json_data["vlan_id"] = vlan_id
-    print(json.dumps(updated_json_data, indent=2))
-
-    print("slice_id value:", slice_id_value)
-    plantilla_actualizada = updated_json_data
-
-    result = collection.update_one(
-        {"_id": ObjectId(slice_id_value)}, {"$set": plantilla_actualizada}
-    )
-    if result.modified_count == 1:
-        print(f"Slice with slice id {slice_id_value} updated successfully")
+            print(f"Slice with slice id {slice_id_value} not updated due to error")
+        print("Orquestador de cómputo inicializado exitosamente.")
     else:
-        print(f"Slice with slice id {slice_id_value} not updated due to error")
-    print("Orquestador de cómputo inicializado exitosamente.")
+        print(f"Slice with slice id {SLICE_ID} not found")
 
 
 def delete():
@@ -334,4 +229,4 @@ def delete():
 
 
 if __name__ == "__main__":
-    main()
+    create()

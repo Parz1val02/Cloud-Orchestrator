@@ -20,10 +20,10 @@ done
 ip link set dev "$nombreOvS" up
 
 # activar IPv4 Forwarding
-sysctl -w net.ipv4.ip_forward=1
+#sysctl -w net.ipv4.ip_forward=1
 
 # cambiar default action del chain FORWARD a DROP
-iptables -P FORWARD DROP #esta regla me quita internet de los workers cuidado
+#iptables -P FORWARD DROP #esta regla me quita internet de los workers cuidado
 
 # mensaje de confirmacion e inicializacion
 echo "HeadNode inicializado correctamente."
