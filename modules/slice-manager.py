@@ -151,5 +151,33 @@ def listar_slices():
             return response, error_code
 
 
+# Endpoint para buscar una plantilla por ID / working
+@app.route("/slices/<string:slice_id>", methods=["GET"])
+def buscar_slice(slice_id):
+    db = client.cloud
+    collection = db.slices
+    try:
+        slice = collection.find_one({"_id": ObjectId(slice_id)})
+        if slice:
+            slice_serialized = serialize_document(slice)
+            response = jsonify({"result": "success", "slice": slice_serialized})
+            return response
+        else:
+            response = jsonify(
+                {
+                    "result": "error",
+                    "msg": f"Slice with slice id {slice_id} not found",
+                }
+            )
+            error_code = 404
+            return response, error_code
+    except:
+        response = jsonify(
+            {"result": "error", "msg": f"Invalid slice id: {slice_id}"}
+        )
+        error_code = 400
+        return response, error_code
+
+
 if __name__ == "__main__":
     app.run(debug=True, port=9999)
