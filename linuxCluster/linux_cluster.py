@@ -173,6 +173,7 @@ def main():
             vlan_id,
             "192.168.0.0/24",
             "192.168.0.3,192.168.0.100,255.255.255.255",
+            headnode_ovs_name,
         )
     ]
     nodes = json_data["topology"]["nodes"]

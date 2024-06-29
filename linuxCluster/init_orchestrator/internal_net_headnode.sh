@@ -5,7 +5,7 @@ NombreRed="$1"
 VLAN_ID="$2"
 DireccionRed="$3"   # formato CIDR
 RangoDHCP="$4"      # especificar formato
-brigde="br-int"
+brigde="$5"
 
 echo $NombreRed
 echo $VLAN_ID
