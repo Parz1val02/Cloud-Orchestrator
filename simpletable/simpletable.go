@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 
 	structs "github.com/Parz1val02/cloud-cli/structs"
 
@@ -114,6 +115,103 @@ func MainTable(token string) (string, error) {
 		for _, v := range templates.Templates {
 			var row []string
 			row = append(row, v.TemplateID, v.Name, v.Description, v.CreatedAt.Format("2006-01-02 15:04:05"), v.TopologyType)
+			rows = append(rows, row)
+		}
+	}
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithHeight(10),
+	)
+
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		Bold(true).
+		Align(lipgloss.Center).
+		BorderBottom(true)
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("236")).
+		Background(lipgloss.Color("12")).
+		Bold(false)
+	t.SetStyles(s)
+
+	p := tea.NewProgram(Model{t, false})
+	m, err := p.Run()
+	if err != nil {
+		return "", err
+	}
+	if m, ok := m.(Model); ok && m.Table.SelectedRow()[0] != "" {
+		if m.Quit {
+			return "", fmt.Errorf("\n---\nQuitting!\n")
+		} else {
+			return m.Table.SelectedRow()[0], nil
+		}
+	} else {
+		return "", fmt.Errorf("Error runing program")
+	}
+}
+
+func SliceTable(token string) (string, error) {
+	serverPort := 4444
+	var slices structs.ListSlices
+	var jsonresp structs.NormalResponse
+	requestURL := fmt.Sprintf("http://localhost:%d/sliceservice/slices", serverPort)
+
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", requestURL, nil)
+	if err != nil {
+		fmt.Println("Error creating request:", err)
+		os.Exit(1)
+	}
+	req.Header.Set("X-API-Key", token)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Printf("Error making http request: %s\n", err)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		err = json.NewDecoder(resp.Body).Decode(&jsonresp)
+		if err != nil {
+			return "", fmt.Errorf("Error decoding response body: %v\n", err)
+		}
+		return "", fmt.Errorf("Unexpected status code: %d, Error: %s\n", resp.StatusCode, jsonresp.Msg)
+	}
+	err = json.NewDecoder(resp.Body).Decode(&slices)
+	if err != nil {
+		err = fmt.Errorf("Error decoding response body: %v", err)
+		return "", err
+	}
+
+	//templateFile, err := os.Open("cloud.templates.json")
+	//if err != nil {
+	//	fmt.Println("Error opening file: ", err.Error())
+	//}
+	//defer templateFile.Close()
+
+	//if err = json.NewDecoder(templateFile).Decode(&templates); err != nil {
+	//	fmt.Println("Error parsing json: ", err.Error())
+	//}
+
+	columns := []table.Column{
+		{Title: "ID", Width: 30},
+		{Title: "Name", Width: 20},
+		{Title: "Topology Type", Width: 20},
+		{Title: "Deployment Type", Width: 20},
+		{Title: "Internet", Width: 20},
+		{Title: "Creation Timestamp", Width: 20},
+	}
+
+	rows := []table.Row{}
+	if slices.Result == "success" {
+		for _, v := range slices.Slices {
+			var row []string
+			row = append(row, v.SliceID, v.Name, v.TopologyType, v.DeploymentType, strconv.FormatBool(v.Internet), v.CreatedAt.Format("2006-01-02 15:04:05"))
 			rows = append(rows, row)
 		}
 	}

@@ -165,6 +165,78 @@ func MainTabs(templateId, token string) {
 	}
 }
 
+func SliceInfoTabs(sliceId, token string) {
+	serverPort := 4444
+	var sliceById structs.ListSliceById
+	var jsonresp structs.NormalResponse
+	requestURL := fmt.Sprintf("http://localhost:%d/sliceservice/slice/%s", serverPort, sliceId)
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", requestURL, nil)
+	if err != nil {
+		fmt.Println("Error creating request:", err)
+		os.Exit(1)
+	}
+	req.Header.Set("X-API-Key", token)
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Printf("error making http request: %s\n", err)
+		os.Exit(1)
+	}
+
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		err = json.NewDecoder(resp.Body).Decode(&jsonresp)
+		if err != nil {
+			fmt.Printf("Error decoding response body: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Unexpected status code: %d, Error: %s\n", resp.StatusCode, jsonresp.Msg)
+		os.Exit(1)
+	}
+	err = json.NewDecoder(resp.Body).Decode(&sliceById)
+	if err != nil {
+		fmt.Printf("Error decoding response body: %v", err)
+		os.Exit(1)
+	}
+
+	//templateFile, err := os.Open("cloud.templatebyid.json")
+	//if err != nil {
+	//	fmt.Println("Error opening file: ", err.Error())
+	//}
+	//defer templateFile.Close()
+	//if err = json.NewDecoder(templateFile).Decode(&templateById); err != nil {
+	//	fmt.Println("Error parsing json: ", err.Error())
+	//}
+
+	if sliceById.Result == "success" && sliceById.Slice.SliceID == sliceId {
+		//out, err := json.Marshal(templateById.Template.Topology)
+		//if err != nil {
+		//	panic(err)
+		//}
+		style := lipgloss.NewStyle().
+			Bold(true).Align(lipgloss.Left)
+		tabs := []string{style.Render("\t\tTemplate Info\t\t"), style.Render("\t\tNodes\t\t"), style.Render("\t\tLinks\t\t")}
+		info_string := fmt.Sprintf("ID: %s\n\nName: %s\n\nDescription: %s\n\nCreated at: %s\n\nTopology type: %s",
+			sliceById.Slice.SliceID, sliceById.Slice.Name, sliceById.Slice.Description, sliceById.Slice.CreatedAt.Format("2006-01-02 15:04:05"), sliceById.Slice.TopologyType)
+		nodes := table.NewWriter()
+		nodes.AppendHeader(table.Row{"ID", "Name", "Image", "CPU", "Memory", "Storage"})
+		for _, v := range sliceById.Slice.Topology.Nodes {
+			nodes.AppendRow(table.Row{v.NodeID, v.Name, v.Image, strconv.Itoa(v.Flavor.CPU), strconv.FormatFloat(float64(v.Flavor.Memory), 'f', 1, 32), strconv.FormatFloat(float64(v.Flavor.Storage), 'f', 1, 32)})
+		}
+		links := table.NewWriter()
+		links.AppendHeader(table.Row{"ID", "Source", "Target"})
+		for _, v := range sliceById.Slice.Topology.Links {
+			links.AppendRow(table.Row{v.LinkID, v.Source, v.Target})
+		}
+		tabContent := []string{style.Render(info_string), style.Render(nodes.Render()), style.Render(links.Render())}
+		m := model{Tabs: tabs, TabContent: tabContent}
+		if _, err := tea.NewProgram(m).Run(); err != nil {
+			fmt.Println("Error running program:", err)
+			os.Exit(1)
+		}
+	}
+}
+
 func max(a, b int) int {
 	if a > b {
 		return a
