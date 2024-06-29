@@ -181,9 +181,9 @@ def main():
     password = "ubuntu"
 
     # Parámetros para los scripts
-    headnode_ovs_name = "br-linux"
+    headnode_ovs_name = "br-vlan"
     headnode_interfaces = "ens5"  # Coloca las interfaces del HeadNode aquí
-    worker_ovs_name = "br-linux"
+    worker_ovs_name = "br-vlan"
     worker_interfaces = "ens4"  # Coloca las interfaces de los Workers aquí
     vlan_id = str(random.randint(1, 500))
 
@@ -300,9 +300,7 @@ def main():
     if result.modified_count == 1:
         print(f"Template with template id {slice_id_value} updated successfully")
     else:
-        print(
-            f"Template with template id {slice_id_value} not updated due to error"
-        )
+        print(f"Template with template id {slice_id_value} not updated due to error")
     print("Orquestador de cómputo inicializado exitosamente.")
 
 

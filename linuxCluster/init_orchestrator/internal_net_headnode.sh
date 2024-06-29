@@ -7,11 +7,6 @@ DireccionRed="$3" # formato CIDR
 RangoDHCP="$4"    # especificar formato
 brigde="$5"
 
-echo $NombreRed
-echo $VLAN_ID
-echo $DireccionRed
-echo $RangoDHCP
-
 # Extraer la dirección de red y la máscara de subred
 direccion_red=$(echo $DireccionRed | cut -d '/' -f1)
 mascara_subred=$(echo $DireccionRed | cut -d '/' -f2)
