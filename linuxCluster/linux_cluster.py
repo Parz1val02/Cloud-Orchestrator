@@ -222,6 +222,14 @@ def main():
                 password,
             )
 
+    for worker_address in worker_addresses:
+        print(f"sudo -S bash obtain_worker.sh {vlan_id}")
+        execute_on_worker(
+            worker_address,
+            f"sudo -S bash obtain_worker.sh {vlan_id}",
+            username,
+            password,
+        )
     # if internet == 1:
     #    for vlan_param in vlan_parameters:
     #        vlan_id = vlan_param[1]
