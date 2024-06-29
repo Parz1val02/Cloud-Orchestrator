@@ -45,19 +45,6 @@ def execute_on_worker(worker_address, script, username, password):
     stdin.flush()
     print(stderr.read().decode("utf-8"))
     print(stdout.read().decode("utf-8"))
-    ssh_client.close()
-
-
-def execute_on_worker2(worker_address, script, username, password):
-    ssh_client = paramiko.SSHClient()
-    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh_client.connect(hostname=worker_address, username=username, password=password)
-
-    stdin, stdout, stderr = ssh_client.exec_command(script, get_pty=True)
-    stdin.write(password + "\n")
-    stdin.flush()
-    print(stderr.read().decode("utf-8"))
-    print(stdout.read().decode("utf-8"))
     output = stdout.read().decode("utf-8")
     ssh_client.close()
     return output
@@ -242,13 +229,14 @@ def main():
 
     for worker_address in worker_addresses:
         print(f"sudo -S bash obtain_worker.sh {vlan_id}")
-        output = execute_on_worker2(
+        output = execute_on_worker(
             worker_address,
             f"sudo -S bash obtain_worker.sh {vlan_id}",
             username,
             password,
         )
         lines = output.strip().splitlines()
+        print(lines)
         if lines:
             last_line = lines[-1]
             print(last_line)
@@ -261,20 +249,6 @@ def main():
                 node_info = {"node_id": var1, "process": var2, "vnc": var3}
                 list_of_nodes.append(node_info)
 
-                slice_id_value = json_data.pop("slice_id", None)
-
-                updated_json_data = copy.deepcopy(json_data)
-
-                for node in updated_json_data["topology"]["nodes"]:
-                    for node2 in list_of_nodes:
-                        if node["node_id"] == node2["node_id"]:
-                            node["process"] = node2["process"]
-                            node["vnc"] = node2["vnc"]
-                            break
-                updated_json_data["vlan_id"] = vlan_id
-                print(json.dumps(updated_json_data, indent=2))
-
-                print("slice_id value:", slice_id_value)
             else:
                 print("Last line does not contain three strings separated by spaces.")
 
@@ -287,6 +261,20 @@ def main():
     #        print(f"implement_orchestrator/vlan_internet.sh {vlan_id}")
     #        execute_on_headnode(f"implement_orchestrator/vlan_internet.sh {vlan_id}")
 
+    slice_id_value = json_data.pop("slice_id", None)
+
+    updated_json_data = copy.deepcopy(json_data)
+
+    for node in updated_json_data["topology"]["nodes"]:
+        for node2 in list_of_nodes:
+            if node["node_id"] == node2["node_id"]:
+                node["process"] = node2["process"]
+                node["vnc"] = node2["vnc"]
+                break
+    updated_json_data["vlan_id"] = vlan_id
+    print(json.dumps(updated_json_data, indent=2))
+
+    print("slice_id value:", slice_id_value)
     print("Orquestador de cómputo inicializado exitosamente.")
 
 
