@@ -18,7 +18,7 @@ ip tuntap add mode tap name "$interfaz_tap_vm"
 random_mac=$(generate_random_mac)
 
 # crear VM (script lab2)
-qemu-system-x86_64 -enable-kvm -vnc 0.0.0.0:"$puertoVNC_local" -netdev tap,id="$interfaz_tap_vm",ifname="$interfaz_tap_vm",script=no,downscript=no -device e1000,netdev="$interfaz_tap_vm",mac="${random_mac}" -daemonize -snapshot cirros-0.6.2-x86_64-disk.img
+qemu-system-x86_64 -enable-kvm -name "$NombreVM"-vnc 0.0.0.0:"$puertoVNC_local" -netdev tap,id="$interfaz_tap_vm",ifname="$interfaz_tap_vm",script=no,downscript=no -device e1000,netdev="$interfaz_tap_vm",mac="${random_mac}" -daemonize -snapshot cirros-0.6.2-x86_64-disk.img
 
 # Conectar interfaz TAP al OvS del host local con el VLAN ID correspondiente
 ovs-vsctl add-port "$NombreOvS" "$interfaz_tap_vm" tag="$VLAN_ID"
