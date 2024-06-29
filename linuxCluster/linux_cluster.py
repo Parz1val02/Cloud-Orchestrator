@@ -1,19 +1,11 @@
 import paramiko
-import sys
 import subprocess
 import random
-import math
-import ipaddress
 
+# import math
+# import ipaddress
 
-# Conexión SSH y ejecución de scripts en el HeadNode
-# def execute_on_headnode(script):
-#    ssh_client = paramiko.SSHClient()
-#    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-#    ssh_client.connect(headnode_address, username=username, password=password)
-#    stdin, stdout, stderr = ssh_client.exec_command(script)
-#    print(stdout.read().decode("utf-8"))
-#    ssh_client.close()
+SLICE_ID = "667790af65d36d25bb0779f6"
 
 
 # ejecución de scripts en el HeadNode local
@@ -46,30 +38,11 @@ def execute_on_worker(worker_address, script, username, password):
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh_client.connect(hostname=worker_address, username=username, password=password)
 
-    # stdin, stdout, stderr = ssh_client.exec_command("sudo -i")
-    # Proporcionar la contraseña a través de stdin
-
-    # Establecer una shell interactiva
-    # ssh_session = ssh_client.invoke_shell()
-
-    # ssh_session.send('cd /home/ubuntu\n')
-    # while not ssh_session.recv_ready():
-    #    pass
-    # ssh_session.send(script + '\n')
-    # Esperar a que se solicite la contraseña
-    # while not ssh_session.recv_ready():
-    #    pass
-    # Enviar la contraseña
-    # ssh_session.send(password + '\n')
-
-    # stdin, stdout, stderr = ssh_client.exec_command("cd /home/ubuntu")
     stdin, stdout, stderr = ssh_client.exec_command(script, get_pty=True)
     stdin.write(password + "\n")
     stdin.flush()
     print(stderr.read().decode("utf-8"))
     print(stdout.read().decode("utf-8"))
-    # output = ssh_session.recv(65535).decode('utf-8')
-    # print(output)
     ssh_client.close()
 
 
@@ -115,15 +88,65 @@ def execute_on_worker(worker_address, script, username, password):
 
 
 def main():
-    if len(sys.argv) != 4:
-        print("Usage: python script.py <slice_id> <number_of_nodes> <internet>")
-        sys.exit(1)
-
-    try:
-        number_of_nodes = int(sys.argv[2])
-    except ValueError:
-        print("Please provide a valid integer for the number of nodes.")
-        sys.exit(1)
+    json_data = {
+        "slice_id": "667790af65d36d25bb0779f6",
+        "created_at": "2024-06-24T02:35:37.1113996Z",
+        "description": "descr",
+        "name": "name",
+        "topology": {
+            "links": [
+                {"link_id": "nd1_nd2", "source": "node_1", "target": "node_2"},
+                {"link_id": "nd2_nd3", "source": "node_2", "target": "node_3"},
+                {"link_id": "nd3_nd1", "source": "node_3", "target": "node_1"},
+            ],
+            "nodes": [
+                {
+                    "node_id": "nd1",
+                    "name": "node_1",
+                    "image": "Ubuntu 20.04 LTS",
+                    "flavor": {
+                        "id": "665275b98c45f0c2b8a2e230",
+                        "name": "t2.micro",
+                        "cpu": 1,
+                        "memory": 0.5,
+                        "storage": 1,
+                    },
+                    "security_rules": [22],
+                },
+                {
+                    "node_id": "nd2",
+                    "name": "node_2",
+                    "image": "Ubuntu 20.04 LTS",
+                    "flavor": {
+                        "id": "665275b98c45f0c2b8a2e230",
+                        "name": "t2.micro",
+                        "cpu": 1,
+                        "memory": 0.5,
+                        "storage": 1,
+                    },
+                    "security_rules": [22],
+                },
+                {
+                    "node_id": "nd3",
+                    "name": "node_3",
+                    "image": "Ubuntu 20.04 LTS",
+                    "flavor": {
+                        "id": "665275b98c45f0c2b8a2e230",
+                        "name": "t2.micro",
+                        "cpu": 1,
+                        "memory": 0.5,
+                        "storage": 1,
+                    },
+                    "security_rules": [22],
+                },
+            ],
+        },
+        "user_id": "6640550a53c1187a6899a5a9",
+        "topology_type": "anillo",
+        "availability_zone": "ga",
+        "deployment_type": "linux",
+        "internet": False,
+    }
 
     # network_bits, subnet_mask = calculate_subnet_mask(number_of_nodes)
     # first_ip, last_ip = calculate_ip_range(network_bits)
@@ -138,10 +161,9 @@ def main():
     password = "ubuntu"
 
     # Parámetros para los scripts
-    # slice_id = sys.argv[1]
-    headnode_ovs_name = "br-int"
+    headnode_ovs_name = "br-linux"
     headnode_interfaces = "ens5"  # Coloca las interfaces del HeadNode aquí
-    worker_ovs_name = "br-int"
+    worker_ovs_name = "br-linux"
     worker_interfaces = "ens4"  # Coloca las interfaces de los Workers aquí
     vlan_id = str(random.randint(1, 500))
 
@@ -153,10 +175,11 @@ def main():
             "192.168.0.3,192.168.0.100,255.255.255.255",
         )
     ]
+    nodes = json_data["topology"]["nodes"]
     vm_parameters = []
-    for i in range(number_of_nodes):
-        vm_name = f"vm{vlan_id}{i}"
-        bridge = "br-int"
+    for i in nodes:
+        vm_name = f"{i["node_id"]}vlan{vlan_id}"
+        bridge = "br-linux"
         vlan_id = vlan_id
         portga = random.randint(1, 500)
         port = str(5900 + portga)
@@ -198,12 +221,11 @@ def main():
                 password,
             )
 
-    internet = int(sys.argv[3])
-    if internet == 1:
-        for vlan_param in vlan_parameters:
-            vlan_id = vlan_param[1]
-            print(f"implement_orchestrator/vlan_internet.sh {vlan_id}")
-            execute_on_headnode(f"implement_orchestrator/vlan_internet.sh {vlan_id}")
+    # if internet == 1:
+    #    for vlan_param in vlan_parameters:
+    #        vlan_id = vlan_param[1]
+    #        print(f"implement_orchestrator/vlan_internet.sh {vlan_id}")
+    #        execute_on_headnode(f"implement_orchestrator/vlan_internet.sh {vlan_id}")
 
     print("Orquestador de cómputo inicializado exitosamente.")
 
