@@ -208,7 +208,7 @@ def main():
             password,
         )
 
-    assignments = assign_nodes_to_workers(number_of_nodes, worker_addresses)
+    assignments = assign_nodes_to_workers(len(nodes), worker_addresses)
 
     for worker, assigned_nodes in assignments.items():
         print(f"{worker} is assigned nodes: {', '.join(assigned_nodes)}")
