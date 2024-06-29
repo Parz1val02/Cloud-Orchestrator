@@ -3,11 +3,15 @@ import paramiko
 import subprocess
 import random
 import copy
+from flask import Flask, request, jsonify
+from pymongo import MongoClient
+from bson.objectid import ObjectId
 
 # import math
 # import ipaddress
 
 SLICE_ID = "667790af65d36d25bb0779f6"
+client = MongoClient("localhost", 27017)
 
 
 # ejecución de scripts en el HeadNode local
@@ -286,6 +290,19 @@ def main():
     print(json.dumps(updated_json_data, indent=2))
 
     print("slice_id value:", slice_id_value)
+    db = client.cloud
+    collection = db.slices
+    plantilla_actualizada = updated_json_data
+
+    result = collection.update_one(
+        {"_id": ObjectId(slice_id_value)}, {"$set": plantilla_actualizada}
+    )
+    if result.modified_count == 1:
+        print(f"Template with template id {slice_id_value} updated successfully")
+    else:
+        print(
+            f"Template with template id {slice_id_value} not updated due to error"
+        )
     print("Orquestador de cómputo inicializado exitosamente.")
 
 
