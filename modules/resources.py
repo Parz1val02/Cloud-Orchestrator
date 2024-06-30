@@ -39,11 +39,11 @@ def findCPU():
     aux = []
     for i in range(size//2):
         #encontramos los porcetnajes de CPU para los 0.5 seg examinados
-        delta =  int(parte2[i]) - int(parte1[i])
-		diff = 50 - delta
-		if diff < 0:
-			diff=0
-		cpu_used = (diff/50)*100
+        delta=int(parte2[i]) - int(parte1[i])
+        diff=50-delta
+        if diff < 0:
+            diff=0
+        cpu_used = (diff/50)*100
         aux.append(cpu_used)
     utilizacionCPU = aux
     print("Informacion de CPU recolectada correctamente")
@@ -126,6 +126,6 @@ if __name__ == "__main__":
         print("Informacion recolectada correctamente")
         print("Enviando la información al servidor")
         #print(overallInfo)
-		print(json.dumps(overallInfo))
+        print(json.dumps(overallInfo))
         envioInformacion(json.dumps(overallInfo))
         time.sleep(0.5)
