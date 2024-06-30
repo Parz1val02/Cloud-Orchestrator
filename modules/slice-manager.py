@@ -2,9 +2,15 @@ from flask import Flask, request, jsonify
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 import tests as openstack_driver
+import linux_cluster as linux
+from celery_linux import make_celery
 
 app = Flask(__name__)
+# Celery configuration
+app.config["CELERY_BROKER_URL"] = "amqp://guest:guest@localhost:5673//"
+app.config["CELERY_RESULT_BACKEND"] = "mongodb://localhost:27017/celery_results"
 
+celery = make_celery(app)
 # Configuración de la conexión a MongoDB
 client = MongoClient("localhost", 27017)
 
@@ -69,12 +75,15 @@ def crear_slice():
 
         else:
             # implementa linux
-
-            return jsonify(
-                {
-                    "msg": f"Slice with id {result.inserted_id} created successfully in Linux Cluster",
-                    "result": "success",
-                }
+            result_celery = linux.create.delay(result.inserted_id)
+            return (
+                jsonify(
+                    {
+                        "message": f"Deployment initiated for {result.inserted_id} on Linux Cluster",
+                        "task_id": result_celery.id,
+                    }
+                ),
+                202,
             )
 
     else:
