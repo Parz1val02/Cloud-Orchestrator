@@ -223,7 +223,7 @@ def eliminar_slice(slice_id):
             else:
                 # implementa linux
                 result_celery = current_app.tasks["linux_cluster.delete"].delay(
-                    str(result.inserted_id)
+                    slice_id
                 )
                 return (
                     jsonify(
