@@ -71,8 +71,8 @@ def crear_slice():
         if new_slice["deployment_type"] == "openstack":
             # implementa openstack .
 
-            # user_name = request.headers["X-User-Username"]
-            # openstack_driver.openstackDeployment(new_slice, user_name)
+            user_name = request.headers["X-User-Username"]
+            openstack_driver.openstackDeployment(new_slice, user_name)
 
             return jsonify(
                 {
