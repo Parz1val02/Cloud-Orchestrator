@@ -22,12 +22,12 @@ from openstack_sdk import (
     get_users,
     list_projects_general,
     delete_project,
-    get_instance_console
+    get_instance_console,
 )
 import json
 
 # Datos de configuración
-GATEWAY_IP = "10.20.12.162"
+GATEWAY_IP = "localhost"
 DOMAIN_ID = "default"
 ADMIN_USER_USERNAME = "admin"
 ADMIN_USER_ID = "54702871434c4554aff7e36f48031ddc"
@@ -109,9 +109,7 @@ def create_instance_port(token, network_id, port_name, project_id):
     if port_resp.status_code == 201:
         port_data = port_resp.json()
         port_id = port_data["port"]["id"]
-        print(
-            f"Port {port_name} created successfully with ID {port_id}"
-        )
+        print(f"Port {port_name} created successfully with ID {port_id}")
         return port_data["port"]["id"]
     else:
         raise Exception(f"Failed to create port {port_name} in network {network_id}")
@@ -125,9 +123,7 @@ def launch_instance(token, instance_name, image_name, flavor_name, networks):
     if resp.status_code == 202:
         instance_data = resp.json()
         instance_id = instance_data["server"]["id"]
-        print(
-            f"Instance {instance_name} created successfully with ID {instance_id}"
-        )
+        print(f"Instance {instance_name} created successfully with ID {instance_id}")
     else:
         raise Exception(f"Failed to launch instance {instance_name}")
 
@@ -165,7 +161,7 @@ def create_slice_topology(topology_json, project_token, project_id):
             "puerto0": puerto0_id,
             "puerto1": puerto1_id,
         }
-    print("links temp: ",links_temp)
+    print("links temp: ", links_temp)
 
     nodes = topology_json["nodes"]
 
@@ -175,8 +171,8 @@ def create_slice_topology(topology_json, project_token, project_id):
         image_id = node["image"]
         networks = []
         for port in node["ports"]:
-            port_id = port["node_id"]    #antes "id"
-            link = find_link_by_source_port(port_id, links)  
+            port_id = port["node_id"]  # antes "id"
+            link = find_link_by_source_port(port_id, links)
             if link is None:
                 link = find_link_by_target_port(port_id, links)
                 port = links_temp[link["link_id"]]["puerto1"]
@@ -187,7 +183,6 @@ def create_slice_topology(topology_json, project_token, project_id):
         print("networks: ", networks)
         launch_instance(project_token, instance_name, image_id, flavor_id, networks)
         time.sleep(2)
-
 
 
 def find_link_by_source_port(port_id, links):
@@ -224,14 +219,10 @@ async def delete_instances_by_networkid(token, network_id, project_id):
                     # print(network)
                     if network == network_original_info["name"]:
                         instance_id = instance["id"]
-                        delete_resp = delete_server(
-                            NOVA_ENDPOINT, token, instance_id
-                        )
+                        delete_resp = delete_server(NOVA_ENDPOINT, token, instance_id)
                         print(f"Deleted instance: {instance_id} for {network}")
                         if delete_resp.status_code != 204:
-                            raise Exception(
-                                f"Failed to delete instance {instance_id}"
-                            )
+                            raise Exception(f"Failed to delete instance {instance_id}")
     else:
         raise Exception("Failed to list instances")
 
@@ -291,8 +282,8 @@ def list_networks_slice(project_id, token):
 
 # Función principal para borrar la topología
 async def delete_slice_topology(project_token, project_id):
-    #admin_token = authenticate_admin()
-    #project_token = authenticate_project(admin_token)
+    # admin_token = authenticate_admin()
+    # project_token = authenticate_project(admin_token)
     print(project_token)
 
     networks = list_networks_slice(project_id, project_token)
@@ -394,7 +385,8 @@ def crear_proyecto(admin_token, domain_id, project_name, project_description):
             return None
     except:
         return None
-    
+
+
 def obtenerIdProyecto(project_token, project_name):
     try:
         resp = list_projects_general(KEYSTONE_ENDPOINT, project_token)
@@ -415,12 +407,13 @@ def obtenerIdProyecto(project_token, project_name):
     except:
         return None
 
+
 def openstackDeployment(slice_json, user_name):
     project_name = slice_json["name"]
     project_description = slice_json["description"]
     print(project_name)
     print(project_description)
-    
+
     try:
         admin_token = authenticate_admin()
         if admin_token:
@@ -448,12 +441,13 @@ def openstackDeployment(slice_json, user_name):
     except Exception as e:
         print(e)
         print("Slice deployment failed")
-        #return False
+        # return False
     else:
-        #return True
+        # return True
         pass
 
-def deleteProject(project_token,project_id):
+
+def deleteProject(project_token, project_id):
     try:
         resp = delete_project(KEYSTONE_ENDPOINT, project_token, project_id)
         print(resp.status_code)
@@ -467,9 +461,8 @@ def deleteProject(project_token,project_id):
         return None
 
 
+def openstackDeleteSlice(project_name, slice_id):
 
-def openstackDeleteSlice(project_name,slice_id):
-    
     print(project_name)
     deleted = False
     try:
@@ -486,7 +479,7 @@ def openstackDeleteSlice(project_name,slice_id):
                         deleted = True
                     else:
                         print("Slice elimination failed")
-                    
+
     except Exception as e:
         print(e)
         print("Slice elimination failed")
@@ -495,7 +488,6 @@ def openstackDeleteSlice(project_name,slice_id):
         print(f"Project with id {project_id} deleted successfully")
         print(f"Slice with id {slice_id} deleted successfully")
         return deleted
-
 
 
 def obtainVNCfromProject(project_name):
@@ -507,19 +499,27 @@ def obtainVNCfromProject(project_name):
             if project_token:
                 project_id = obtenerIdProyecto(project_token, project_name)
                 if project_id:
-                    instances_resp = list_instances(NOVA_ENDPOINT, project_token, project_id)
+                    instances_resp = list_instances(
+                        NOVA_ENDPOINT, project_token, project_id
+                    )
                     if instances_resp.status_code == 200:
                         instances = instances_resp.json()["servers"]
                         # print(instances)
                         for instance in instances:
                             server_id = instance["id"]
                             server_name = instance["name"]
-                            vnc_resp = get_instance_console(NOVA_ENDPOINT,project_token,server_id)
+                            vnc_resp = get_instance_console(
+                                NOVA_ENDPOINT, project_token, server_id
+                            )
                             if vnc_resp.status_code == 200:
                                 vnc_console_url = vnc_resp.json()["console"]["url"]
-                                vnc_console_url = vnc_console_url.replace("controller", "10.20.12.162")
+                                vnc_console_url = vnc_console_url.replace(
+                                    "controller", "10.20.12.162"
+                                )
                                 vnc_urls[server_name] = vnc_console_url
-                                print(f"Servidor: {server_name}, VNC URL: {vnc_console_url}")                                                                           
+                                print(
+                                    f"Servidor: {server_name}, VNC URL: {vnc_console_url}"
+                                )
     except Exception as e:
         print(e)
         print("VNC links failed")
@@ -527,5 +527,3 @@ def obtainVNCfromProject(project_name):
     else:
         print(f"VNCs of project id {project_id} obtained successfully")
         return vnc_urls
-       
-        
