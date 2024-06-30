@@ -82,6 +82,7 @@ flag:
 				}
 			}
 		} else {
+			fmt.Printf("\n---\nAn error ocurred or maybe this user does not have created templates!\n\n")
 			break flag
 		}
 	}

@@ -112,6 +112,11 @@ func MainTable(token string) (string, error) {
 
 	rows := []table.Row{}
 	if templates.Result == "success" {
+		if len(templates.Templates) == 0 {
+			templateId := ""
+			return templateId, nil
+		}
+
 		for _, v := range templates.Templates {
 			var row []string
 			row = append(row, v.TemplateID, v.Name, v.Description, v.CreatedAt.Format("2006-01-02 15:04:05"), v.TopologyType)
@@ -209,6 +214,10 @@ func SliceTable(token string) (string, error) {
 
 	rows := []table.Row{}
 	if slices.Result == "success" {
+		if len(slices.Slices) == 0 {
+			sliceId := ""
+			return sliceId, nil
+		}
 		for _, v := range slices.Slices {
 			var row []string
 			row = append(row, v.SliceID, v.Name, v.TopologyType, v.DeploymentType, strconv.FormatBool(v.Internet), v.CreatedAt.Format("2006-01-02 15:04:05"))

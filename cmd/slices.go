@@ -322,6 +322,7 @@ flag:
 				}
 			}
 		} else {
+			fmt.Printf("\n---\nAn error ocurred or maybe this user does not have created slices!\n\n")
 			break flag
 		}
 	}
