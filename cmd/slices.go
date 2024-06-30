@@ -27,7 +27,7 @@ import (
 
 func createSliceRequestHttp(templateId string, token string, avZone string, internet bool, deploymentType string) {
 	serverPort := 4444
-	requestURL := fmt.Sprintf("http://localhost:%d/sliceservice/slices", serverPort)
+	requestURL := fmt.Sprintf("http://10.20.12.162:%d/sliceservice/slices", serverPort)
 
 	now := time.Now().UTC()
 	// formattedTime := now.Format("2006-01-02 15:04:05")
@@ -188,7 +188,7 @@ func selectAvailabilityZone() string {
 }
 
 func fetchAvailabilityZone() ([]AvailabilityZone, error) {
-	url := "http://localhost:4444/templateservice/templates/avz"
+	url := "http://10.20.12.162:4444/templateservice/templates/avz"
 
 	token := viper.GetString("token")
 
@@ -256,7 +256,7 @@ func sliceModelCRUD2() simplelist.Model {
 
 func deleteSlice(slice_id, token, deployment_type string) {
 	serverPort := 4444
-	requestURL := fmt.Sprintf("http://localhost:%d/sliceservice/slices/%s", serverPort, slice_id)
+	requestURL := fmt.Sprintf("http://10.20.12.162:%d/sliceservice/slices/%s", serverPort, slice_id)
 
 	req, err := http.NewRequest("DELETE", requestURL, nil)
 	if err != nil {

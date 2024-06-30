@@ -516,7 +516,7 @@ func selectImage(nodeName string) Image {
 }
 
 func fetchImages() ([]Image, error) {
-	url := "http://localhost:4444/templateservice/templates/images"
+	url := "http://10.20.12.162:4444/templateservice/templates/images"
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -579,7 +579,7 @@ func selectFlavor(nodeName string) Flavor {
 }
 
 func fetchFlavors() ([]Flavor, error) {
-	url := "http://localhost:4444/templateservice/templates/flavors"
+	url := "http://10.20.12.162:4444/templateservice/templates/flavors"
 
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
@@ -778,7 +778,7 @@ func selectAvailabilityZone() AvailabilityZone {
 	return availabilityZones[choice-1]
 }
 func fetchAvailabilityZone() ([]AvailabilityZone, error) {
-	url := "http://localhost:5000/templates/availabilityZones"
+	url := "http://10.20.12.162:4444/templates/availabilityZones"
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -876,7 +876,7 @@ type AvailabilityZone struct {
 
 func sendTemplate(templateJSON []byte, token string) {
 	serverPort := 4444
-	requestURL := fmt.Sprintf("http://localhost:%d/templateservice/templates", serverPort)
+	requestURL := fmt.Sprintf("http://10.20.12.162:%d/templateservice/templates", serverPort)
 
 	req, err := http.NewRequest("POST", requestURL, bytes.NewBuffer(templateJSON))
 	if err != nil {

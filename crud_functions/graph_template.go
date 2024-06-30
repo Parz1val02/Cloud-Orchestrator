@@ -26,6 +26,6 @@ func openBrowser(url string) {
 }
 
 func GraphTemplate(template_id string) {
-	url := "http://localhost:4444/graph/" + template_id
+	url := "http://10.20.12.162:4444/graph/" + template_id
 	openBrowser(url)
 }

@@ -11,7 +11,7 @@ import (
 
 func DeleteTemplate(templateId, token string) error {
 	serverPort := 4444
-	requestURL := fmt.Sprintf("http://localhost:%d/templateservice/templates/%s", serverPort, templateId)
+	requestURL := fmt.Sprintf("http://10.20.12.162:%d/templateservice/templates/%s", serverPort, templateId)
 	client := &http.Client{}
 
 	req, err := http.NewRequest("DELETE", requestURL, nil)

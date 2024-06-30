@@ -215,7 +215,7 @@ func editTemplateTable(template *Template) {
 
 // Función para hacer una solicitud PUT con las modificaciones
 func sendPUTRequest(serverPort int, templateId, token string, template *Template) error {
-	requestURL := fmt.Sprintf("http://localhost:%d/templateservice/templates/%s", serverPort, templateId)
+	requestURL := fmt.Sprintf("http://10.20.12.162:%d/templateservice/templates/%s", serverPort, templateId)
 
 	// Convertir Template a JSON
 	templateJSON, err := json.Marshal(template)
@@ -274,7 +274,7 @@ func EditTemplate(templateId string, token string) {
 	serverPort := 4444
 	var templateById ListTemplateById
 	var jsonresp NormalResponse
-	requestURL := fmt.Sprintf("http://localhost:%d/templateservice/templates/%s", serverPort, templateId)
+	requestURL := fmt.Sprintf("http://10.20.12.162:%d/templateservice/templates/%s", serverPort, templateId)
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", requestURL, nil)
 	if err != nil {

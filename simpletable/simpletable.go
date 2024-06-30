@@ -63,7 +63,7 @@ func MainTable(token string) (string, error) {
 	serverPort := 4444
 	var templates structs.ListTemplates
 	var jsonresp structs.NormalResponse
-	requestURL := fmt.Sprintf("http://localhost:%d/templateservice/templates", serverPort)
+	requestURL := fmt.Sprintf("http://10.20.12.162:%d/templateservice/templates", serverPort)
 
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", requestURL, nil)
@@ -164,7 +164,7 @@ func SliceTable(token string) (string, string, error) {
 	serverPort := 4444
 	var slices structs.ListSlices
 	var jsonresp structs.NormalResponse
-	requestURL := fmt.Sprintf("http://localhost:%d/sliceservice/slices", serverPort)
+	requestURL := fmt.Sprintf("http://10.20.12.162:%d/sliceservice/slices", serverPort)
 
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", requestURL, nil)

@@ -45,7 +45,7 @@ func login(username, password string) (User, error) {
 	}
 
 	jsonData, _ := json.Marshal(authData)
-	resp, err := http.Post("http://localhost:4444/login", "application/json", bytes.NewBuffer(jsonData))
+	resp, err := http.Post("http://10.20.12.162:4444/login", "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		fmt.Println("Error in authentication", err)
 		os.Exit(1)

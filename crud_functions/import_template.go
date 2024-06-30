@@ -135,7 +135,7 @@ func ImportTemplate(userId, token string) {
 	}
 	jsonData, _ := json.Marshal(*normalTemplate)
 
-	req, err := http.NewRequest("POST", "http://localhost:4444/templateservice/templates", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", "http://10.20.12.162:4444/templateservice/templates", bytes.NewBuffer(jsonData))
 	if err != nil {
 		fmt.Println("Error creating request:", err)
 		return

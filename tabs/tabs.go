@@ -97,7 +97,7 @@ func MainTabs(templateId, token string) {
 	serverPort := 4444
 	var templateById structs.ListTemplateById
 	var jsonresp structs.NormalResponse
-	requestURL := fmt.Sprintf("http://localhost:%d/templateservice/templates/%s", serverPort, templateId)
+	requestURL := fmt.Sprintf("http://10.20.12.162:%d/templateservice/templates/%s", serverPort, templateId)
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", requestURL, nil)
 	if err != nil {
@@ -169,7 +169,7 @@ func SliceInfoTabs(sliceId, token string) {
 	serverPort := 4444
 	var sliceById structs.ListSliceById
 	var jsonresp structs.NormalResponse
-	requestURL := fmt.Sprintf("http://localhost:%d/sliceservice/slices/%s", serverPort, sliceId)
+	requestURL := fmt.Sprintf("http://10.20.12.162:%d/sliceservice/slices/%s", serverPort, sliceId)
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", requestURL, nil)
 	if err != nil {
