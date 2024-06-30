@@ -21,7 +21,8 @@ from openstack_sdk import (
     assign_role_to_user,
     get_users,
     list_projects_general,
-    delete_project
+    delete_project,
+    get_instance_console
 )
 import json
 
@@ -494,3 +495,37 @@ def openstackDeleteSlice(project_name,slice_id):
         print(f"Project with id {project_id} deleted successfully")
         print(f"Slice with id {slice_id} deleted successfully")
         return deleted
+
+
+
+def obtainVNCfromProject(project_name):
+    vnc_urls = {}
+    try:
+        admin_token = authenticate_admin()
+        if admin_token:
+            project_token = authenticate_project(admin_token, project_name)
+            if project_token:
+                project_id = obtenerIdProyecto(project_token, project_name)
+                if project_id:
+                    instances_resp = list_instances(NOVA_ENDPOINT, project_token, project_id)
+                    if instances_resp.status_code == 200:
+                        instances = instances_resp.json()["servers"]
+                        # print(instances)
+                        for instance in instances:
+                            server_id = instance["id"]
+                            server_name = instance["name"]
+                            vnc_resp = get_instance_console(NOVA_ENDPOINT,project_token,server_id)
+                            if vnc_resp.status_code == 200:
+                                vnc_console_url = vnc_resp.json()["console"]["url"]
+                                vnc_console_url = vnc_console_url.replace("controller", "10.20.12.162")
+                                vnc_urls[server_name] = vnc_console_url
+                                print(f"Servidor: {server_name}, VNC URL: {vnc_console_url}")                                                                           
+    except Exception as e:
+        print(e)
+        print("VNC links failed")
+        return None
+    else:
+        print(f"VNCs of project id {project_id} obtained successfully")
+        return vnc_urls
+       
+        

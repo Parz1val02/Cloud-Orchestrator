@@ -261,21 +261,19 @@ def create_port(auth_endpoint, token, name, network_id, project_id):
 # NOVA API
 #def create_instance(auth_endpoint, token, name, flavorRef, imageRef=None, availability_zone=None, network_list=None, compute_version=None):
 
-def get_instance_console(nova_endpoint, token, server_id, compute_api_version):
-    url = nova_endpoint + '/servers/' + server_id + '/remote-consoles'
+def get_instance_console(nova_endpoint, token, server_id):
+    url = nova_endpoint + '/servers/' + server_id + '/action'
     headers = {
         'Content-type': 'application/json',
         'X-Auth-Token': token,
-        "OpenStack-API-Version": "compute " + compute_api_version
     }
     
     data = \
         {
-            "remote_console": {
-                "protocol": "vnc",
-                "type": "novnc"
-                }
+        "os-getVNCConsole": {
+            "type": "novnc"
         }
+    }
     
     r = requests.post(url=url, headers=headers, data=json.dumps(data))
     # status_code success = 200

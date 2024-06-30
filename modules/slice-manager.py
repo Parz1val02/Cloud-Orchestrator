@@ -194,6 +194,37 @@ def buscar_slice(slice_id):
         error_code = 400
         return response, error_code
 
+# Endpoint para buscar una plantilla por ID / working
+@app.route("/slices/vnc/<string:slice_id>", methods=["GET"])
+def vnc_slice(slice_id):
+    db = client.cloud
+    collection = db.slices
+    try:
+        slice = collection.find_one({"_id": ObjectId(slice_id)})
+        if slice:
+           
+           project_name = slice.get("name")
+           vnc_urls = openstack_driver.obtainVNCfromProject(project_name)
+           if vnc_urls is None:
+                return jsonify({"result": "error", "msg": "Failed to obtain VNC links"}), 500
+           
+           response = jsonify({"result": "success", "vnc": vnc_urls})
+           return response
+        else:
+            response = jsonify(
+                {
+                    "result": "error",
+                    "msg": f"Slice with slice id {slice_id} not found",
+                }
+            )
+            error_code = 404
+            return response, error_code
+    except:
+        response = jsonify({"result": "error", "msg": f"Invalid slice id: {slice_id}"})
+        error_code = 400
+        return response, error_code
+
+
 
 # Endpoint para eliminar una slice por ID / working
 @app.route("/slices/<string:slice_id>", methods=["DELETE"])
