@@ -1,17 +1,18 @@
 from flask import Flask, request, jsonify
+from celery.result import AsyncResult
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 
 # import tests as openstack_driver
 import linux_cluster as linux
-from celery import Celery
+from celery import Celery, current_app
 
 app = Flask(__name__)
 client = MongoClient("localhost", 27017)
 app.config.update(
     CELERY_BROKER_URL="amqp://guest:guest@localhost:5673//",
-    CELERY_RESULT_BACKEND="mongodb://localhost:27017/celery_results",
-)  # Configuración de la conexión a MongoDB
+    CELERY_RESULT_BACKEND="mongodb://localhost:27017/cloud",
+)
 # Create Celery instance
 celery = Celery(
     app.import_name,
@@ -19,6 +20,7 @@ celery = Celery(
     backend=app.config["CELERY_RESULT_BACKEND"],
 )
 celery.conf.update(app.config)
+celery.set_default()
 
 
 def serialize_document(doc):
@@ -81,7 +83,9 @@ def crear_slice():
 
         else:
             # implementa linux
-            result_celery = linux.create.delay(result.inserted_id)
+            result_celery = current_app.tasks["linux_cluster.create"].delay(
+                str(result.inserted_id)
+            )
             return (
                 jsonify(
                     {
@@ -218,6 +222,40 @@ def eliminar_plantilla(slice_id):
         response = jsonify({"result": "error", "msg": f"Invalid slice id: {slice_id}"})
         error_code = 400
         return response, error_code
+
+
+# Route to get task result
+@app.route("/tasks/<task_id>", methods=["GET"])
+def get_task_result(task_id):
+    task_result = AsyncResult(task_id, app=celery)
+
+    response = {"task_id": task_id, "status": task_result.status}
+
+    if task_result.state == "PENDING":
+        response.update({"message": "Task is pending execution."})
+    elif task_result.state == "STARTED":
+        response.update({"message": "Task has started."})
+    elif task_result.state == "SUCCESS":
+        response.update(
+            {"message": "Task completed successfully.", "result": task_result.result}
+        )
+    elif task_result.state == "FAILURE":
+        response.update(
+            {
+                "message": "Task failed.",
+                "result": str(task_result.result),  # Convert the exception to string
+                "traceback": task_result.traceback,  # Include the traceback if available
+            }
+        )
+    elif task_result.state == "RETRY":
+        response.update(
+            {
+                "message": "Task is being retried.",
+                "result": str(task_result.result),  # Convert the exception to string
+            }
+        )
+
+    return jsonify(response), 200
 
 
 if __name__ == "__main__":
