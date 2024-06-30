@@ -417,7 +417,6 @@ def openstackDeployment(slice_json, user_name):
     try:
         admin_token = authenticate_admin()
         if admin_token:
-            # 2.- Crear el proyecto
             project = crear_proyecto(
                 admin_token, DOMAIN_ID, project_name, project_description
             )
