@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from celery.result import AsyncResult
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 
@@ -221,6 +222,40 @@ def eliminar_plantilla(slice_id):
         response = jsonify({"result": "error", "msg": f"Invalid slice id: {slice_id}"})
         error_code = 400
         return response, error_code
+
+
+# Route to get task result
+@app.route("/tasks/<task_id>", methods=["GET"])
+def get_task_result(task_id):
+    task_result = AsyncResult(task_id, app=celery)
+
+    response = {"task_id": task_id, "status": task_result.status}
+
+    if task_result.state == "PENDING":
+        response.update({"message": "Task is pending execution."})
+    elif task_result.state == "STARTED":
+        response.update({"message": "Task has started."})
+    elif task_result.state == "SUCCESS":
+        response.update(
+            {"message": "Task completed successfully.", "result": task_result.result}
+        )
+    elif task_result.state == "FAILURE":
+        response.update(
+            {
+                "message": "Task failed.",
+                "result": str(task_result.result),  # Convert the exception to string
+                "traceback": task_result.traceback,  # Include the traceback if available
+            }
+        )
+    elif task_result.state == "RETRY":
+        response.update(
+            {
+                "message": "Task is being retried.",
+                "result": str(task_result.result),  # Convert the exception to string
+            }
+        )
+
+    return jsonify(response), 200
 
 
 if __name__ == "__main__":
