@@ -310,7 +310,7 @@ func EditTemplate(templateId string, token string) {
 	modification := Modification{}
 flag:
 	for {
-		//printTopologyTable(template.Topology)
+		// printTopologyTable(template.Topology)
 		modificationJSON, _ := json.MarshalIndent(modification, "", "  ")
 		fmt.Printf("modification JSON:\n%s\n", string(modificationJSON))
 		editTemplateTable(&template)
@@ -411,6 +411,12 @@ flag:
 			if err != nil {
 				fmt.Printf("Error updating template: %v\n", err)
 				os.Exit(1)
+			}
+			var option string
+			fmt.Printf(">Would you like to graph the template with id %s? (y/N): ", templateId)
+			fmt.Scanf("%s\n", &option)
+			if option != "" && option == "y" || option == "Y" {
+				GraphTemplate(templateId)
 			}
 
 			// Romper el ciclo y salir del programa

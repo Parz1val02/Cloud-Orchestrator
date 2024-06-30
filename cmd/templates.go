@@ -70,6 +70,8 @@ flag:
 							}
 							break flag
 						}
+					case 3:
+						crud.GraphTemplate(templateId)
 					case 4:
 						error := crud.ExportTemplate(templateId, token)
 						if error != nil {

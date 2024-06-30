@@ -8,8 +8,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
-	"runtime"
 	"strings"
 	"time"
 
@@ -525,9 +523,9 @@ func fetchImages() ([]Image, error) {
 		fmt.Println("Error creating request:", err)
 		os.Exit(1)
 	}
-	var token = viper.GetString("token")
+	token := viper.GetString("token")
 	req.Header.Set("X-API-Key", token)
-	//fmt.Println("TOKEN", token)
+	// fmt.Println("TOKEN", token)
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching images: %w", err)
@@ -589,9 +587,9 @@ func fetchFlavors() ([]Flavor, error) {
 		fmt.Println("Error creating request:", err)
 		os.Exit(1)
 	}
-	var token = viper.GetString("token")
+	token := viper.GetString("token")
 	req.Header.Set("X-API-Key", token)
-	//fmt.Println("token:", token)
+	// fmt.Println("token:", token)
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching flavors: %w", err)
@@ -731,176 +729,6 @@ func printTopologyTable(topology Topology) {
 	fmt.Printf("%-20s %-20s %-20s\n", "LinkID", "Source", "Target")
 	for _, link := range topology.Links {
 		fmt.Printf("%-20s %-20s %-20s\n", link.LinkID, link.Source, link.Target)
-	}
-}
-
-func graphTemplateTopology(template Template) {
-	templateDetails := `
-			<strong>Template Name:</strong> ` + template.Name + `<br>
-			<strong>Description:</strong> ` + template.Description + `
-			`
-
-	htmlContent := `
-	<!DOCTYPE html>
-	<html lang="en">
-	<head>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>Network Topology</title>
-		<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.29.2/cytoscape.min.js" integrity="sha512-yi5TwB0WBpzqlJXNLURNMtpFXJt4yxJhkOG8yqkVQYWhfMkAoDF93rZ/KjfoN1gADGr5uKXvr5/Bw6CC03YWpA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-		<style>
-			#cy {
-				width: 100%;
-				height: 400px;
-				border: 1px solid #333; /* Borde sólido de 1 píxel de color gris oscuro */
-				border-radius: 3px; /* Borde redondeado */
-			}
-			#info-container {
-				padding: 10px;
-				border: 1px solid #ccc;
-				border-radius: 5px;
-				background-color: #f9f9f9;
-			}
-			#node-info {
-				font-family: Arial, sans-serif;
-				font-size: 14px;
-			}
-			#template-details {
-				margin-bottom: 10px;
-			}
-			#template-details strong {
-				color: #333;
-				margin-right: 5px;
-			}
-		</style>
-	</head>
-	<body>
-		<div class="container">
-			<div class="row justify-content-center mt-5">
-				<div class="col-md-8 text-center">
-					<h1 class="mb-4">Network Topology</h1>
-					<div id="template-details" class="text-left">
-					` + templateDetails + `
-					</div>
-				</div>
-			</div>
-			<div class="row justify-content-center">
-				<div class="col-md-8">
-					<div id="cy"></div>
-				</div>
-				<div class="col-md-4">
-					<div id="info-container">
-						<div id="node-info"></div>
-					</div>
-				</div>
-			</div>
-		</div>
-		<script>
-			document.addEventListener('DOMContentLoaded', function() {
-				var cy = cytoscape({
-					container: document.getElementById('cy'),
-					elements: [
-`
-	for _, node := range template.Topology.Nodes {
-		htmlContent += fmt.Sprintf(`
-                    { data: { id: '%s', name: '%s', cpu: '%d', memory: '%.1f', storage: '%.1f', image: '%s' } },
-`, node.NodeID, node.Name, node.Flavor.CPU, node.Flavor.Memory, node.Flavor.Storage, node.Image)
-	}
-
-	for _, link := range template.Topology.Links {
-		htmlContent += fmt.Sprintf(`
-                    { data: { id: '%s', source: '%s', target: '%s' } },
-`, link.LinkID, link.Source, link.Target)
-	}
-
-	htmlContent += `
-	],
-	style: [
-		{
-			selector: 'node',
-			style: {
-				'label': 'data(name)',
-				'width': '60px',
-				'height': '60px',
-				'background-color': '#349beb', // Azul suave
-				'color': '#000', // Color de la etiqueta
-				'text-valign': 'center',
-				'text-halign': 'center'
-			}
-		},
-		{
-			selector: 'edge',
-			style: {
-				'width': 3,
-				'line-color': '#000', // Negro
-				'curve-style': 'bezier'
-			}
-		}
-	],
-	layout: {
-		name: 'cose', // Layout for better node distribution
-		fit: true, // Whether to fit the viewport to the graph
-		padding: 30, // Padding around the graph
-		animate: true, // Whether to animate the layout
-		animationDuration: 1000 // Duration of animation in ms if enabled
-	}
-});
-
-// Función para mostrar información del nodo
-function showNodeInfo(node) {
-	var nodeData = node.data();
-	var nodeInfo = '<strong>Node:</strong> ' + nodeData.name + '<br>' +
-				   '<strong>vCPU:</strong> ' + nodeData.cpu + '<br>' +
-				   '<strong>Memory:</strong> ' + nodeData.memory + 'GB<br>' +
-				   '<strong>Storage:</strong> ' + nodeData.storage + 'GB<br>' + 
-				   '<strong>Image:</strong> ' + nodeData.image;
-	document.getElementById('node-info').innerHTML = nodeInfo;
-}
-
-// Agregar evento de clic a los nodos
-cy.on('tap', 'node', function(event) {
-	var node = event.target;
-	showNodeInfo(node);
-});
-});
-</script>
-</body>
-</html>
-
-`
-
-	file, err := os.Create("topology.html")
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-
-	_, err = file.WriteString(htmlContent)
-	if err != nil {
-		panic(err)
-	}
-
-	// Open the HTML file in the default browser
-	openBrowser("topology.html")
-}
-
-func openBrowser(url string) {
-	var err error
-
-	switch os := runtime.GOOS; os {
-	case "linux":
-		err = exec.Command("xdg-open", url).Start()
-	case "windows":
-		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
-	case "darwin":
-		err = exec.Command("open", url).Start()
-	default:
-		err = fmt.Errorf("unsupported platform")
-	}
-
-	if err != nil {
-		fmt.Printf("Failed to open browser: %v\n", err)
 	}
 }
 
@@ -1047,7 +875,6 @@ type AvailabilityZone struct {
 }*/
 
 func sendTemplate(templateJSON []byte, token string) {
-
 	serverPort := 4444
 	requestURL := fmt.Sprintf("http://localhost:%d/templateservice/templates", serverPort)
 
@@ -1071,6 +898,7 @@ func sendTemplate(templateJSON []byte, token string) {
 	// Estructura para deserializar la respuesta
 	type ResponseCreateTemplate struct {
 		Result string `json:"result"`
+		ID     string `json:"id"`
 		Msg    string `json:"msg"`
 	}
 
@@ -1088,11 +916,15 @@ func sendTemplate(templateJSON []byte, token string) {
 	}
 	// Mostrar la respuesta
 	fmt.Println("Respuesta:", result)
-
+	var option string
+	fmt.Printf(">Would you like to graph the template with id %s? (y/N): ", result.ID)
+	fmt.Scanf("%s\n", &option)
+	if option != "" && option == "y" || option == "Y" {
+		GraphTemplate(result.ID)
+	}
 }
 
 func CreateTemplate(user_id string, token string) {
-
 	initConfig()
 
 	name := promptString("Enter template name: ")
@@ -1113,7 +945,7 @@ func CreateTemplate(user_id string, token string) {
 	fmt.Printf("Nodes: %+v\n", topology.Nodes)
 	fmt.Printf("Links: %+v\n", topology.Links)
 
-	//availabilityZone := selectorAvailabilityZone()
+	// availabilityZone := selectorAvailabilityZone()
 
 	template := Template{
 		CreatedAt:    time.Now().UTC(),
@@ -1128,8 +960,6 @@ func CreateTemplate(user_id string, token string) {
 	fmt.Printf("Generated JSON:\n%s\n", string(templateJSON))
 	printTopologyTable(topology)
 
-	graphTemplateTopology(template)
-
 	sendTemplate(templateJSON, token)
 	/*
 		// Graficar la topología y guardarla como un archivo HTML
@@ -1137,5 +967,4 @@ func CreateTemplate(user_id string, token string) {
 			fmt.Println("Error:", err)
 			return
 		}*/
-
 }

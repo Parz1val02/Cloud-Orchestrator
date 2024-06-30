@@ -160,7 +160,7 @@ func MainTable(token string) (string, error) {
 	}
 }
 
-func SliceTable(token string) (string, error) {
+func SliceTable(token string) (string, string, error) {
 	serverPort := 4444
 	var slices structs.ListSlices
 	var jsonresp structs.NormalResponse
@@ -183,14 +183,14 @@ func SliceTable(token string) (string, error) {
 	if resp.StatusCode != http.StatusOK {
 		err = json.NewDecoder(resp.Body).Decode(&jsonresp)
 		if err != nil {
-			return "", fmt.Errorf("Error decoding response body: %v\n", err)
+			return "", "", fmt.Errorf("Error decoding response body: %v\n", err)
 		}
-		return "", fmt.Errorf("Unexpected status code: %d, Error: %s\n", resp.StatusCode, jsonresp.Msg)
+		return "", "", fmt.Errorf("Unexpected status code: %d, Error: %s\n", resp.StatusCode, jsonresp.Msg)
 	}
 	err = json.NewDecoder(resp.Body).Decode(&slices)
 	if err != nil {
 		err = fmt.Errorf("Error decoding response body: %v", err)
-		return "", err
+		return "", "", err
 	}
 
 	//templateFile, err := os.Open("cloud.templates.json")
@@ -216,7 +216,7 @@ func SliceTable(token string) (string, error) {
 	if slices.Result == "success" {
 		if len(slices.Slices) == 0 {
 			sliceId := ""
-			return sliceId, nil
+			return sliceId, "", nil
 		}
 		for _, v := range slices.Slices {
 			var row []string
@@ -248,15 +248,15 @@ func SliceTable(token string) (string, error) {
 	p := tea.NewProgram(Model{t, false})
 	m, err := p.Run()
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	if m, ok := m.(Model); ok && m.Table.SelectedRow()[0] != "" {
 		if m.Quit {
-			return "", fmt.Errorf("\n---\nQuitting!\n")
+			return "", "", fmt.Errorf("\n---\nQuitting!\n")
 		} else {
-			return m.Table.SelectedRow()[0], nil
+			return m.Table.SelectedRow()[0], m.Table.SelectedRow()[3], nil
 		}
 	} else {
-		return "", fmt.Errorf("Error runing program")
+		return "", "", fmt.Errorf("Error runing program")
 	}
 }
