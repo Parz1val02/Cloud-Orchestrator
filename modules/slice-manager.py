@@ -1,18 +1,24 @@
 from flask import Flask, request, jsonify
 from pymongo import MongoClient
 from bson.objectid import ObjectId
-import tests as openstack_driver
+
+# import tests as openstack_driver
 import linux_cluster as linux
-from celery_linux import make_celery
+from celery import Celery
 
 app = Flask(__name__)
-# Celery configuration
-app.config["CELERY_BROKER_URL"] = "amqp://guest:guest@localhost:5673//"
-app.config["CELERY_RESULT_BACKEND"] = "mongodb://localhost:27017/celery_results"
-
-celery = make_celery(app)
-# Configuración de la conexión a MongoDB
 client = MongoClient("localhost", 27017)
+app.config.update(
+    CELERY_BROKER_URL="amqp://guest:guest@localhost:5673//",
+    CELERY_RESULT_BACKEND="mongodb://localhost:27017/celery_results",
+)  # Configuración de la conexión a MongoDB
+# Create Celery instance
+celery = Celery(
+    app.import_name,
+    broker=app.config["CELERY_BROKER_URL"],
+    backend=app.config["CELERY_RESULT_BACKEND"],
+)
+celery.conf.update(app.config)
 
 
 def serialize_document(doc):
@@ -64,7 +70,7 @@ def crear_slice():
             # implementa openstack .
 
             user_name = request.headers["X-User-Username"]
-            openstack_driver.openstackDeployment(new_slice, user_name)
+            # openstack_driver.openstackDeployment(new_slice, user_name)
 
             return jsonify(
                 {
