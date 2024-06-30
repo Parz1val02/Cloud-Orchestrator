@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from celery.result import AsyncResult
 from pymongo import MongoClient
 from bson.objectid import ObjectId
+import linux_cluster as linux
 
 # import tests as openstack_driver
 from celery import Celery, current_app
