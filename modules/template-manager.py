@@ -120,6 +120,7 @@ def crear_plantilla():
         return jsonify(
             {
                 "msg": f"Template with id {result.inserted_id} created successfully",
+                "id": result.inserted_id,
                 "result": "success",
             }
         )
@@ -220,12 +221,12 @@ def graph_plantilla(template_id):
 
 def serialize_document_not_template(doc):
     """for key, value in doc.items():
-        if isinstance(value, ObjectId):
-            #  Convertir ObjectId a cadena de texto
-            doc[key] = str(value)
-            doc["id"] = doc.pop(key)
+    if isinstance(value, ObjectId):
+        #  Convertir ObjectId a cadena de texto
+        doc[key] = str(value)
+        doc["id"] = doc.pop(key)
     """
-     # Crear una copia del documento original para evitar modificar mientras iteramos
+    # Crear una copia del documento original para evitar modificar mientras iteramos
     doc_copy = doc.copy()
     for key, value in doc_copy.items():
         if isinstance(value, ObjectId):
@@ -259,6 +260,7 @@ def listar_images():
     else:
         return jsonify({"result": "success", "msg": "No available images to display"})
 
+
 # Endpoint para listar todos los avz
 @app.route("/templates/avz", methods=["GET"])
 def listar_avzs():
@@ -269,7 +271,6 @@ def listar_avzs():
         return jsonify({"result": "success", "availability_zones": avzs})
     else:
         return jsonify({"result": "success", "msg": "No available images to display"})
-
 
 
 if __name__ == "__main__":
