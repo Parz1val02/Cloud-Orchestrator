@@ -81,7 +81,7 @@ def crear_slice():
 
         else:
             # implementa linux
-            result_celery = current_app.tasks["linux.create"].delay(result.inserted_id)
+            result_celery = current_app.tasks["linux_cluster.create"].delay(result.inserted_id)
             return (
                 jsonify(
                     {
