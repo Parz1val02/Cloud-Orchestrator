@@ -28,7 +28,7 @@ func createSliceRequestHttp(templateId string, token string, avZone string, inte
 	requestURL := fmt.Sprintf("http://localhost:%d/sliceservice/slices", serverPort)
 
 	now := time.Now().UTC()
-	//formattedTime := now.Format("2006-01-02 15:04:05")
+	// formattedTime := now.Format("2006-01-02 15:04:05")
 	// Parámetros de la solicitud en formato JSON
 	jsonData := map[string]interface{}{
 		"template_id":       templateId,
@@ -40,8 +40,7 @@ func createSliceRequestHttp(templateId string, token string, avZone string, inte
 
 	// Codificar los parámetros como JSON
 	jsonValue, err := json.Marshal(jsonData)
-	//fmt.Printf("Generated JSON:\n%s\n", string(jsonValue))
-
+	// fmt.Printf("Generated JSON:\n%s\n", string(jsonValue))
 	if err != nil {
 		fmt.Println("Error al codificar parámetros:", err)
 		return
@@ -69,22 +68,40 @@ func createSliceRequestHttp(templateId string, token string, avZone string, inte
 		Result string `json:"result"`
 		Msg    string `json:"msg"`
 	}
-
-	// Leer la respuesta
-	var result ResponseCreateSlice
-
-	err = json.NewDecoder(resp.Body).Decode(&result)
-	if err != nil {
-		fmt.Printf("Error decoding response body create slice http: %v", err)
-		os.Exit(1)
+	type ResponseCreateSliceLinux struct {
+		Task_id string `json:"task_id"`
+		Message string `json:"message"`
 	}
-	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("Unexpected status code: %d, Error: %s\n", resp.StatusCode, result.Msg)
-		os.Exit(1)
-	}
-	// Mostrar la respuesta
-	fmt.Println("Respuesta:", result)
 
+	if deploymentType == "openstack" {
+		// Leer la respuesta
+		var result ResponseCreateSlice
+
+		err = json.NewDecoder(resp.Body).Decode(&result)
+		if err != nil {
+			fmt.Printf("Error decoding response body create slice http: %v", err)
+			os.Exit(1)
+		}
+		if resp.StatusCode != http.StatusOK {
+			fmt.Printf("Unexpected status code: %d, Error: %s\n", resp.StatusCode, result.Msg)
+			os.Exit(1)
+		}
+		// Mostrar la respuesta
+		fmt.Println("Respuesta:", result)
+	} else {
+		var result ResponseCreateSliceLinux
+		err = json.NewDecoder(resp.Body).Decode(&result)
+		if err != nil {
+			fmt.Printf("Error decoding response body create slice http: %v", err)
+			os.Exit(1)
+		}
+		if resp.StatusCode != http.StatusAccepted {
+			fmt.Printf("Unexpected status code: %d, Error: %s\n", resp.StatusCode, result.Message)
+			os.Exit(1)
+		}
+		// Mostrar la respuesta
+		fmt.Println("Response:", result)
+	}
 }
 
 func promptString(promptText string) string {
@@ -167,10 +184,11 @@ func selectAvailabilityZone() string {
 	// Devolver la imagen seleccionada
 	return availabilityZones[choice-1].Name
 }
+
 func fetchAvailabilityZone() ([]AvailabilityZone, error) {
 	url := "http://localhost:4444/templateservice/templates/avz"
 
-	var token = viper.GetString("token")
+	token := viper.GetString("token")
 
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
@@ -180,7 +198,7 @@ func fetchAvailabilityZone() ([]AvailabilityZone, error) {
 	}
 	req.Header.Set("X-API-Key", token)
 
-	//fmt.Println("TOKEN", token)
+	// fmt.Println("TOKEN", token)
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching availabilityZones: %w", err)
@@ -234,7 +252,7 @@ func sliceModelCRUD2() simplelist.Model {
 	}
 }
 
-func deleteSlice(slice_id string, token string) {
+func deleteSlice(slice_id, token, deployment_type string) {
 	serverPort := 4444
 	requestURL := fmt.Sprintf("http://localhost:%d/sliceservice/slices/%s", serverPort, slice_id)
 
@@ -259,27 +277,47 @@ func deleteSlice(slice_id string, token string) {
 		Result string `json:"result"`
 		Msg    string `json:"msg"`
 	}
-
-	// Leer la respuesta
-	var result ResponseDeleteSlice
-
-	err = json.NewDecoder(resp.Body).Decode(&result)
-	if err != nil {
-		fmt.Printf("Error decoding response body delete slice http: %v", err)
-		//os.Exit(1)
+	type ResponseDeleteSliceLinux struct {
+		Task_id string `json:"task_id"`
+		Message string `json:"message"`
 	}
-	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("Unexpected status code: %d, Error: %s\n", resp.StatusCode, result.Msg)
-		//os.Exit(1)
-	}
-	// Mostrar la respuesta
-	fmt.Println("Respuesta:", result)
 
+	if deployment_type == "openstack" {
+		// Leer la respuesta
+		var result ResponseDeleteSlice
+
+		err = json.NewDecoder(resp.Body).Decode(&result)
+		if err != nil {
+			fmt.Printf("Error decoding response body delete slice http: %v", err)
+			// os.Exit(1)
+		}
+		if resp.StatusCode != http.StatusOK {
+			fmt.Printf("Unexpected status code: %d, Error: %s\n", resp.StatusCode, result.Msg)
+			// os.Exit(1)
+		}
+		// Mostrar la respuesta
+		fmt.Println("Respuesta:", result)
+	} else {
+		// Leer la respuesta
+		var result ResponseDeleteSliceLinux
+
+		err = json.NewDecoder(resp.Body).Decode(&result)
+		if err != nil {
+			fmt.Printf("Error decoding response body delete slice http: %v", err)
+			// os.Exit(1)
+		}
+		if resp.StatusCode != http.StatusAccepted {
+			fmt.Printf("Unexpected status code: %d, Error: %s\n", resp.StatusCode, result.Message)
+			// os.Exit(1)
+		}
+		// Mostrar la respuesta
+		fmt.Println("Respuesta:", result)
+	}
 }
 
 func listSlices() {
 	token := viper.GetString("token")
-	sliceId, err := simpletable.SliceTable(token)
+	sliceId, deploymentType, err := simpletable.SliceTable(token)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -302,14 +340,14 @@ flag:
 					case 0:
 						tabs.SliceInfoTabs(sliceId, token)
 					case 1:
-						//crud.EditSlice(sliceId, token)
+						// crud.EditSlice(sliceId, token)
 
 					case 2:
 						var option string
 						fmt.Printf(">Are you sure you want to delete slice with id %s? (y/N): ", sliceId)
 						fmt.Scanf("%s\n", &option)
 						if option != "" && option == "y" || option == "Y" {
-							deleteSlice(sliceId, token)
+							deleteSlice(sliceId, token, deploymentType)
 							/*if error != nil {
 								fmt.Println("Error:", err)
 								//os.Exit(1)
