@@ -165,19 +165,14 @@ def buscar_slice(slice_id):
             response = jsonify(
                 {
                     "result": "error",
-                    "msg": f"Slice with slice id {slice_id} not deleted due to error",
+                    "msg": f"Slice with slice id {slice_id} not found",
                 }
             )
-            error_code = 400
+            error_code = 404
             return response, error_code
     except:
-        response = jsonify(
-            {
-                "result": "error",
-                "msg": f"Slice with slice id {slice_id} not found",
-            }
-        )
-        error_code = 404
+        response = jsonify({"result": "error", "msg": f"Invalid slice id: {slice_id}"})
+        error_code = 400
         return response, error_code
 
 
@@ -199,19 +194,14 @@ def eliminar_plantilla(slice_id):
             response = jsonify(
                 {
                     "result": "error",
-                    "msg": f"Slice with slice id {slice_id} not deleted due to error",
+                    "msg": f"Slice with slice id {slice_id} not found",
                 }
             )
-            error_code = 400
+            error_code = 404
             return response, error_code
     except:
-        response = jsonify(
-            {
-                "result": "error",
-                "msg": f"Slice with slice id {slice_id} not found",
-            }
-        )
-        error_code = 404
+        response = jsonify({"result": "error", "msg": f"Invalid slice id: {slice_id}"})
+        error_code = 400
         return response, error_code
 
 
