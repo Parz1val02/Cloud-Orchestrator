@@ -9,7 +9,6 @@ app = Flask(__name__)
 client = MongoClient("localhost", 27017)
 
 
-
 def serialize_document(doc):
     # Crear una copia del documento original para evitar modificar mientras iteramos
     doc_copy = doc.copy()
@@ -21,6 +20,7 @@ def serialize_document(doc):
                 doc["slice_id"] = doc.pop(key)
     return doc  # Función para serializar documentos MongoDB / necesario para ser enviados como respuesta del endpoint / working
 
+
 def serialize_template(template):
     doc_copy = template.copy()
     for key, value in doc_copy.items():
@@ -28,56 +28,55 @@ def serialize_template(template):
             template[key] = str(value)
             if key != "template_id":
                 template["template_id"] = template.pop(key)
-    return template  
+    return template
+
 
 def obtenerTemplateById(template_id):
     db = client.cloud
     collection = db.templates
     template = collection.find_one({"_id": ObjectId(template_id)})
-     # Eliminar el campo '_id' si existe
-    if '_id' in template:
-        del template['_id']
+    # Eliminar el campo '_id' si existe
+    if "_id" in template:
+        del template["_id"]
 
     return template
-    
+
 
 # Endpoint para crear una nueva plantilla / working
 @app.route("/slices", methods=["POST"])
 def crear_slice():
     new_slice_info = request.json
-    new_slice = obtenerTemplateById(new_slice_info['template_id'])
+    new_slice = obtenerTemplateById(new_slice_info["template_id"])
     new_slice.update(new_slice_info)
 
     db = client.cloud
     collection = db.slices
     result = collection.insert_one(new_slice)
     if result.inserted_id:
-        
-        if new_slice['deployment_type']=='openstack':
-            # implementa openstack .  
-            
+
+        if new_slice["deployment_type"] == "openstack":
+            # implementa openstack .
+
             user_name = request.headers["X-User-Username"]
-            openstack_driver.openstackDeployment(new_slice,user_name)
-            
-            
+            openstack_driver.openstackDeployment(new_slice, user_name)
+
             return jsonify(
                 {
                     "msg": f"Slice with id {result.inserted_id} created successfully in OpenStack",
                     "result": "success",
                 }
             )
-        
+
         else:
             # implementa linux
-            
+
             return jsonify(
                 {
                     "msg": f"Slice with id {result.inserted_id} created successfully in Linux Cluster",
                     "result": "success",
                 }
             )
-        
-       
+
     else:
         response = jsonify(
             {
@@ -166,16 +165,53 @@ def buscar_slice(slice_id):
             response = jsonify(
                 {
                     "result": "error",
-                    "msg": f"Slice with slice id {slice_id} not found",
+                    "msg": f"Slice with slice id {slice_id} not deleted due to error",
                 }
             )
-            error_code = 404
+            error_code = 400
             return response, error_code
     except:
         response = jsonify(
-            {"result": "error", "msg": f"Invalid slice id: {slice_id}"}
+            {
+                "result": "error",
+                "msg": f"Slice with slice id {slice_id} not found",
+            }
         )
-        error_code = 400
+        error_code = 404
+        return response, error_code
+
+
+# Endpoint para eliminar una slice por ID / working
+@app.route("/slices/<string:slice_id>", methods=["DELETE"])
+def eliminar_plantilla(slice_id):
+    db = client.cloud
+    collection = db.slices
+    try:
+        result = collection.delete_one({"_id": ObjectId(slice_id)})
+        if result.deleted_count == 1:
+            return jsonify(
+                {
+                    "result": "success",
+                    "msg": f"Slice with slice id {slice_id} deleted successfully",
+                }
+            )
+        else:
+            response = jsonify(
+                {
+                    "result": "error",
+                    "msg": f"Slice with slice id {slice_id} not deleted due to error",
+                }
+            )
+            error_code = 400
+            return response, error_code
+    except:
+        response = jsonify(
+            {
+                "result": "error",
+                "msg": f"Slice with slice id {slice_id} not found",
+            }
+        )
+        error_code = 404
         return response, error_code
 
 
