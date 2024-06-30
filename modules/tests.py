@@ -631,11 +631,9 @@ def deleteProject(project_token,project_id):
 
 
 
-def openstackDeleteSlice(slice_json, user_name):
-    project_name = slice_json["name"]
-    project_description = slice_json["description"]
+def openstackDeleteSlice(project_name,slice_id):
+    
     print(project_name)
-    print(project_description)
     deleted = False
     try:
         admin_token = authenticate_admin()
@@ -655,8 +653,8 @@ def openstackDeleteSlice(slice_json, user_name):
     except Exception as e:
         print(e)
         print("Slice elimination failed")
-        #return deleted
+        return deleted
     else:
         print(f"Project with id {project_id} deleted successfully")
-        print(f"Slice with id {slice_json["slice_id"]} deleted successfully")
-        #return deleted
+        print(f"Slice with id {slice_id} deleted successfully")
+        return deleted

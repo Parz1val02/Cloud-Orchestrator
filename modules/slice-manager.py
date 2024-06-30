@@ -4,7 +4,7 @@ from pymongo import MongoClient
 from bson.objectid import ObjectId
 import linux_cluster as linux
 
-# import tests as openstack_driver
+import tests as openstack_driver
 from celery import Celery, current_app
 
 app = Flask(__name__)
@@ -202,23 +202,32 @@ def eliminar_slice(slice_id):
     collection = db.slices
     try:
         result = collection.find_one(
-            {"_id": ObjectId(slice_id)}, {"deployment_type": 1, "_id": 0}
+            {"_id": ObjectId(slice_id)}, {"deployment_type": 1, "_id": 0, "name":1}
         )
         if result:
+            print(result)
             attribute_value = result.get("deployment_type")
             print(f"The value of the attribute deployment_type is: {attribute_value}")
             if attribute_value == "openstack":
                 # implementa openstack .
+                slice_name_project_name = result.get("name")
+                #user_name = request.headers["X-User-Username"]
+                deleted = openstack_driver.openstackDeleteSlice(slice_name_project_name,slice_id)
 
-                # user_name = request.headers["X-User-Username"]
-                # openstack_driver.openstackDeployment(new_slice, user_name)
-
-                return jsonify(
-                    {
-                        "msg": f"Slice with id {slice_id} deleted successfully in OpenStack",
-                        "result": "success",
-                    }
-                )
+                if deleted:
+                    return jsonify(
+                        {
+                            "msg": f"Slice with id {slice_id} deleted successfully in OpenStack",
+                            "result": "success",
+                        }
+                    )
+                else:
+                    return jsonify(
+                        {
+                            "msg": f"Slice with id {slice_id} not deleted in database. error ocurred",
+                            "result": "error",
+                        }
+                    )
 
             else:
                 # implementa linux
@@ -245,7 +254,7 @@ def eliminar_slice(slice_id):
             return response, error_code
 
     except:
-        response = jsonify({"result": "error", "msg": f"Invalid slice id: {slice_id}"})
+        response = jsonify({"result": "error", "msg": f"Error ocurred during elimination slice id: {slice_id}"})
         error_code = 400
         return response, error_code
 
