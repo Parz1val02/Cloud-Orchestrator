@@ -33,6 +33,7 @@ func main() {
 	r.Use(authenticate())
 	r.Use(rateLimit())
 	r.POST("/login", loginHandler)
+	r.GET("/graph/:id", graphHandler)
 	// r.POST("/logout", logoutHandler)
 	r.Any("/templateservice/*path", proxy2)
 	r.Any("/sliceservice/*path", proxySliceManager)
@@ -90,6 +91,10 @@ func createReverseProxySliceManager(targetURL string) (func(*gin.Context), error
 func authenticate() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.Request.URL.Path == "/login" || c.Request.URL.Path == "/logout" {
+			c.Next()
+			return
+		}
+		if strings.HasPrefix(c.Request.URL.Path, "/graph/") {
 			c.Next()
 			return
 		}
