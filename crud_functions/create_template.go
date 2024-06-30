@@ -8,8 +8,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
-	"runtime"
 	"strings"
 	"time"
 
@@ -525,9 +523,9 @@ func fetchImages() ([]Image, error) {
 		fmt.Println("Error creating request:", err)
 		os.Exit(1)
 	}
-	var token = viper.GetString("token")
+	token := viper.GetString("token")
 	req.Header.Set("X-API-Key", token)
-	//fmt.Println("TOKEN", token)
+	// fmt.Println("TOKEN", token)
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching images: %w", err)
@@ -589,9 +587,9 @@ func fetchFlavors() ([]Flavor, error) {
 		fmt.Println("Error creating request:", err)
 		os.Exit(1)
 	}
-	var token = viper.GetString("token")
+	token := viper.GetString("token")
 	req.Header.Set("X-API-Key", token)
-	//fmt.Println("token:", token)
+	// fmt.Println("token:", token)
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching flavors: %w", err)
@@ -885,25 +883,6 @@ cy.on('tap', 'node', function(event) {
 	openBrowser("topology.html")
 }
 
-func openBrowser(url string) {
-	var err error
-
-	switch os := runtime.GOOS; os {
-	case "linux":
-		err = exec.Command("xdg-open", url).Start()
-	case "windows":
-		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
-	case "darwin":
-		err = exec.Command("open", url).Start()
-	default:
-		err = fmt.Errorf("unsupported platform")
-	}
-
-	if err != nil {
-		fmt.Printf("Failed to open browser: %v\n", err)
-	}
-}
-
 func selectTopologyType() string {
 	// Mostrar opciones de topology type al usuario
 	topology_type := []string{"predefined", "custom"}
@@ -1047,7 +1026,6 @@ type AvailabilityZone struct {
 }*/
 
 func sendTemplate(templateJSON []byte, token string) {
-
 	serverPort := 4444
 	requestURL := fmt.Sprintf("http://localhost:%d/templateservice/templates", serverPort)
 
@@ -1088,11 +1066,9 @@ func sendTemplate(templateJSON []byte, token string) {
 	}
 	// Mostrar la respuesta
 	fmt.Println("Respuesta:", result)
-
 }
 
 func CreateTemplate(user_id string, token string) {
-
 	initConfig()
 
 	name := promptString("Enter template name: ")
@@ -1113,7 +1089,7 @@ func CreateTemplate(user_id string, token string) {
 	fmt.Printf("Nodes: %+v\n", topology.Nodes)
 	fmt.Printf("Links: %+v\n", topology.Links)
 
-	//availabilityZone := selectorAvailabilityZone()
+	// availabilityZone := selectorAvailabilityZone()
 
 	template := Template{
 		CreatedAt:    time.Now().UTC(),
@@ -1137,5 +1113,4 @@ func CreateTemplate(user_id string, token string) {
 			fmt.Println("Error:", err)
 			return
 		}*/
-
 }
