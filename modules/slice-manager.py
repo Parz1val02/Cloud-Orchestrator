@@ -19,6 +19,7 @@ celery = Celery(
     backend=app.config["CELERY_RESULT_BACKEND"],
 )
 celery.conf.update(app.config)
+celery.set_default()
 
 
 def serialize_document(doc):
@@ -81,7 +82,9 @@ def crear_slice():
 
         else:
             # implementa linux
-            result_celery = current_app.tasks["linux_cluster.create"].delay(str(result.inserted_id))
+            result_celery = current_app.tasks["linux_cluster.create"].delay(
+                str(result.inserted_id)
+            )
             return (
                 jsonify(
                     {
