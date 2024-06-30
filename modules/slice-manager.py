@@ -1,10 +1,10 @@
-from flask import Flask, request, jsonify, current_app
+from flask import Flask, request, jsonify
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 
 # import tests as openstack_driver
 import linux_cluster as linux
-from celery import Celery
+from celery import Celery, current_app
 
 app = Flask(__name__)
 client = MongoClient("localhost", 27017)
@@ -81,9 +81,7 @@ def crear_slice():
 
         else:
             # implementa linux
-            result_celery = current_app.send_task(
-                "linux.create", args=[str(result.inserted_id)]
-            )
+            result_celery = current_app.tasks["linux.create"].delay(result.inserted_id)
             return (
                 jsonify(
                     {
