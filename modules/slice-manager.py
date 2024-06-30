@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, current_app
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 
@@ -19,6 +19,7 @@ celery = Celery(
     backend=app.config["CELERY_RESULT_BACKEND"],
 )
 celery.conf.update(app.config)
+cw
 
 
 def serialize_document(doc):
@@ -81,7 +82,9 @@ def crear_slice():
 
         else:
             # implementa linux
-            result_celery = linux.create.delay(str(result.inserted_id))
+            result_celery = current_app.tasks["linux.create"].delay(
+                str(result.inserted_id)
+            )
             return (
                 jsonify(
                     {
