@@ -10,8 +10,8 @@ app = Flask(__name__)
 client = MongoClient("localhost", 27017)
 app.config.update(
     CELERY_BROKER_URL="amqp://guest:guest@localhost:5673//",
-    CELERY_RESULT_BACKEND="mongodb://localhost:27017/celery_results",
-)  # Configuración de la conexión a MongoDB
+    CELERY_RESULT_BACKEND="mongodb://localhost:27017/cloud",
+)
 # Create Celery instance
 celery = Celery(
     app.import_name,
