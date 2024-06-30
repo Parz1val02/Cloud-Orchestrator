@@ -1,6 +1,5 @@
 import logging
 import json
-from datetime import datetime
 import paramiko
 import subprocess
 import random
@@ -118,14 +117,14 @@ def create(self, slice_id):
                 vm_parameters.append([vm_name, bridge, vlan_id, port])
 
             # Ejecución de los scripts en el HeadNode
-            task_logger.info(
+            print(
                 f"bash init_orchestrator/init_headnode.sh {headnode_ovs_name} {headnode_interfaces}"
             )
             execute_on_headnode(
                 f"bash init_orchestrator/init_headnode.sh {headnode_ovs_name} {headnode_interfaces}"
             )
             for vlan_param in vlan_parameters:
-                task_logger.info(
+                print(
                     f"bash init_orchestrator/internal_net_headnode.sh {' '.join(vlan_param)}"
                 )
                 execute_on_headnode(
@@ -134,7 +133,7 @@ def create(self, slice_id):
 
             # Ejecución de los scripts en los Workers
             for worker_address in worker_addresses:
-                task_logger.info(
+                print(
                     f"sudo -S bash init_worker.sh {worker_ovs_name} {worker_interfaces}"
                 )
                 execute_on_worker(
@@ -151,7 +150,7 @@ def create(self, slice_id):
                     f"{worker} is assigned nodes: {', '.join(assigned_nodes)}"
                 )
                 for i in assigned_nodes:
-                    task_logger.info(
+                    print(
                         f"sudo -S bash vm_script.sh {' '.join(vm_parameters[int(i)-1])}"
                     )
                     execute_on_worker(
@@ -162,7 +161,7 @@ def create(self, slice_id):
                     )
 
             for worker_address in worker_addresses:
-                task_logger.info(f"sudo -S bash obtain_worker.sh {vlan_id}")
+                print(f"sudo -S bash obtain_worker.sh {vlan_id}")
                 output = execute_on_worker(
                     worker_address,
                     f"sudo -S bash obtain_worker.sh {vlan_id}",
@@ -173,7 +172,6 @@ def create(self, slice_id):
                 print(lines)
                 if lines:
                     last_line = lines[-1]
-                    task_logger.info(last_line)
                     parts = last_line.split()  # Split the last line by whitespace
 
                     if len(parts) == 4:
@@ -187,6 +185,9 @@ def create(self, slice_id):
                             "vnc": var3,
                             "worker": var4,
                         }
+                        task_logger.info(
+                            f"Node {var1} is assigned to {var4}. Process is {var2} and vnc port is {var3}"
+                        )
                         list_of_nodes.append(node_info)
 
                     else:
@@ -220,17 +221,19 @@ def create(self, slice_id):
                 {"_id": ObjectId(slice_id)}, {"$set": updated_slice_data}
             )
             if result.modified_count == 1:
-                task_logger.info(f"Slice with slice id {slice_id} updated successfully")
+                task_logger.info(
+                    f"Slice with slice id {slice_id} deployed  successfully on Linux Cluster"
+                )
                 print("Orquestador de cómputo inicializado exitosamente.")
                 result = {
-                    "message": f"Slice with slice id {slice_id} deployed successfully in Linux Cluster"
+                    "message": f"Slice with slice id {slice_id} deployed successfully on Linux Cluster"
                 }
             else:
                 task_logger.info(
                     f"Slice with slice id {slice_id} not updated due to error"
                 )
                 result = {
-                    "message": f"Slice with slice id {slice_id} not deployed successfully in Linux Cluster"
+                    "message": f"Slice with slice id {slice_id} not deployed successfully on Linux Cluster"
                 }
             handler.flush()
             return result
@@ -246,24 +249,69 @@ def create(self, slice_id):
         handler.close()
 
 
-@shared_task
-def delete(slice_id):
+@shared_task(bind=True)
+def delete(self, slice_id):
+    task_logger = logging.getLogger(f"task_{self.request.id}")
+    handler = MongoDBHandler(
+        db_name="cloud", collection_name="logs", task_id=self.request.id
+    )
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    handler.setFormatter(formatter)
+    task_logger.addHandler(handler)
+    task_logger.setLevel(logging.INFO)
     slice = collection.find_one({"_id": ObjectId(slice_id)})
-    if slice:
-        vlan = slice["vlan_id"]
-        execute_on_headnode(
-            f"bash implement_orchestrator/delete_headnode.sh {vlan} {headnode_ovs_name}"
-        )
-        for node in slice["topology"]["nodes"]:
-            node_id = node["node_id"]
-            process = node["process"]
-            worker = node["worker"]
-            execute_on_worker(
-                worker,
-                f"sudo -S bash delete_worker.sh {vlan} {headnode_ovs_name} {node_id} {process}",
-                username,
-                password,
+    try:
+        task_logger.info(f"Starting to delete VM slice {slice_id} on Linux Cluster")
+        if slice:
+            vlan = slice["vlan_id"]
+            print(
+                f"bash implement_orchestrator/delete_headnode.sh {vlan} {headnode_ovs_name}"
             )
+            execute_on_headnode(
+                f"bash implement_orchestrator/delete_headnode.sh {vlan} {headnode_ovs_name}"
+            )
+            for node in slice["topology"]["nodes"]:
+                node_id = node["node_id"]
+                process = node["process"]
+                worker = node["worker"]
+                execute_on_worker(
+                    worker,
+                    f"sudo -S bash delete_worker.sh {vlan} {headnode_ovs_name} {node_id} {process}",
+                    username,
+                    password,
+                )
+                task_logger.info(
+                    f"Node {node_id} assigned to {worker} with process {process} has been deleted"
+                )
 
-    else:
-        print(f"Slice with slice id {slice_id} not found")
+            result = collection.delete_one({"_id": ObjectId(slice_id)})
+            if result.deleted_count == 1:
+                task_logger.info(
+                    f"Slice with slice id {slice_id} deleted successfully on Linux Cluster"
+                )
+                print("Slice borrdo exitosamente.")
+                result = {
+                    "message": f"Slice with slice id {slice_id} deleted successfully on Linux Cluster"
+                }
+            else:
+                print(f"Slice with slice id {slice_id} not deleted correctly")
+                task_logger.info(
+                    f"Slice with slice id {slice_id} not delted due to error"
+                )
+                result = {
+                    "message": f"Slice with slice id {slice_id} not deleted successfully on Linux Cluster"
+                }
+            handler.flush()
+            return result
+        else:
+            print(f"Slice with slice id {slice_id} not found")
+    except Exception as e:
+        error_msg = f"Error deleting VM slice {slice_id} on Linux Cluster: {str(e)}"
+        task_logger.error(error_msg)
+
+        handler.flush()
+        raise e
+    finally:
+        handler.close()

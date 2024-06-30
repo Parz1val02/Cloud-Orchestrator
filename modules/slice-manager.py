@@ -71,7 +71,7 @@ def crear_slice():
         if new_slice["deployment_type"] == "openstack":
             # implementa openstack .
 
-            user_name = request.headers["X-User-Username"]
+            # user_name = request.headers["X-User-Username"]
             # openstack_driver.openstackDeployment(new_slice, user_name)
 
             return jsonify(
@@ -197,18 +197,43 @@ def buscar_slice(slice_id):
 
 # Endpoint para eliminar una slice por ID / working
 @app.route("/slices/<string:slice_id>", methods=["DELETE"])
-def eliminar_plantilla(slice_id):
+def eliminar_slice(slice_id):
     db = client.cloud
     collection = db.slices
     try:
-        result = collection.delete_one({"_id": ObjectId(slice_id)})
-        if result.deleted_count == 1:
-            return jsonify(
-                {
-                    "result": "success",
-                    "msg": f"Slice with slice id {slice_id} deleted successfully",
-                }
-            )
+        result = collection.find_one(
+            {"_id": ObjectId(slice_id)}, {"deployment_type": 1, "_id": 0}
+        )
+        if result:
+            attribute_value = result.get("deployment_type")
+            print(f"The value of the attribute deployment_type is: {attribute_value}")
+            if attribute_value == "openstack":
+                # implementa openstack .
+
+                # user_name = request.headers["X-User-Username"]
+                # openstack_driver.openstackDeployment(new_slice, user_name)
+
+                return jsonify(
+                    {
+                        "msg": f"Slice with id {slice_id} deleted successfully in OpenStack",
+                        "result": "success",
+                    }
+                )
+
+            else:
+                # implementa linux
+                result_celery = current_app.tasks["linux_cluster.delete"].delay(
+                    str(result.inserted_id)
+                )
+                return (
+                    jsonify(
+                        {
+                            "message": f"Delete workflow initiated for {slice_id} on Linux Cluster",
+                            "task_id": result_celery.id,
+                        }
+                    ),
+                    202,
+                )
         else:
             response = jsonify(
                 {
@@ -218,6 +243,7 @@ def eliminar_plantilla(slice_id):
             )
             error_code = 404
             return response, error_code
+
     except:
         response = jsonify({"result": "error", "msg": f"Invalid slice id: {slice_id}"})
         error_code = 400
