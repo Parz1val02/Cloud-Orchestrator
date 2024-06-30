@@ -14,7 +14,7 @@ import (
 
 const (
 	APIGatewayURL      = "http://localhost:4444"
-	TemplateserviceURL = "http://localhost:5000"
+	TemplateserviceURL = "http://localhost:6666"
 	SliceserviceURL    = "http://localhost:9999"
 )
 
