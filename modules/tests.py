@@ -108,7 +108,7 @@ def create_instance_port(token, network_id, port_name, project_id):
     if port_resp.status_code == 201:
         port_data = port_resp.json()
         print(
-            f'Port {port_name} created successfully with ID {port_data["port"]["id"]}'
+            f"Port {port_name} created successfully with ID {port_data["port"]["id"]}"
         )
         return port_data["port"]["id"]
     else:
@@ -123,7 +123,7 @@ def launch_instance(token, instance_name, image_name, flavor_name, networks):
     if resp.status_code == 202:
         instance_data = resp.json()
         print(
-            f'Instance {instance_name} created successfully with ID {instance_data["server"]["id"]}'
+            f"Instance {instance_name} created successfully with ID {instance_data["server"]["id"]}"
         )
     else:
         raise Exception(f"Failed to launch instance {instance_name}")
@@ -392,10 +392,10 @@ async def delete_instances_by_networkid(token, network_id, project_id):
                         delete_resp = delete_server(
                             NOVA_ENDPOINT, token, instance["id"]
                         )
-                        print(f"Deleted instance: {instance['id']} for {network}")
+                        print(f"Deleted instance: {instance["id"]} for {network}")
                         if delete_resp.status_code != 204:
                             raise Exception(
-                                f'Failed to delete instance {instance["id"]}'
+                                f"Failed to delete instance {instance["id"]}"
                             )
     else:
         raise Exception("Failed to list instances")
@@ -409,9 +409,9 @@ async def delete_ports(token, network_id):
         for port in ports:
             delete_resp = delete_port(NEUTRON_ENDPOINT, token, port["id"])
             if delete_resp.status_code != 204:
-                raise Exception(f'Failed to delete port {port["id"]}')
+                raise Exception(f"Failed to delete port {port["id"]}")
             else:
-                # print('Deleted port: ',port['id'])
+                # print("Deleted port: ",port["id"])
                 pass
     else:
         raise Exception("Failed to list ports")
@@ -425,9 +425,9 @@ async def delete_subnets(token, network_id):
         for subnet in subnets:
             delete_resp = delete_subnet(NEUTRON_ENDPOINT, token, subnet["id"])
             if delete_resp.status_code != 204:
-                raise Exception(f'Failed to delete subnet {subnet["id"]}')
+                raise Exception(f"Failed to delete subnet {subnet["id"]}")
             else:
-                # print('Deleted subnet: ',subnet['id'])
+                # print("Deleted subnet: ",subnet["id"])
                 pass
     else:
         raise Exception("Failed to list subnets")
@@ -462,7 +462,7 @@ async def delete_slice_topology(project_token, project_id):
     # networks_id = []
     if networks:
         for network in networks:
-            # networks_id.append(network['id'])
+            # networks_id.append(network["id"])
             network_id = network["id"]
             # Borrar instancias
             await delete_instances_by_networkid(project_token, network_id, project_id)
@@ -476,13 +476,13 @@ async def delete_slice_topology(project_token, project_id):
             # Borrar red
             await delete_network_by_id(project_token, network_id)
             time.sleep(0.25)
-        print("Ring network deleted.")
+        print("network deleted.")
     else:
         print(f"Project with id {project_id} do not have links")
 
 
 # Llamar a la función principal para borrar la topología
-# network_id = '551f8238-1464-44dc-bc19-d448fdb46eb2'  # Reemplaza con el ID de la red que deseas borrar
+# network_id = "551f8238-1464-44dc-bc19-d448fdb46eb2"  # Reemplaza con el ID de la red que deseas borrar
 # asyncio.run(delete_slice_topology())
 
 
@@ -563,17 +563,17 @@ def obtenerIdProyecto(project_token, project_name):
         resp = list_projects_general(KEYSTONE_ENDPOINT, project_token)
         print(resp.status_code)
         if resp.status_code == 200:
-            print('PROJECTS OBTAINED SUCCESSFULLY')
+            print("PROJECTS OBTAINED SUCCESSFULLY")
             projects = resp.json()
             print(json.dumps(projects))
             for project in projects["projects"]:
-                if project['name'] == project_name:
-                    print("id del proyecto: ", project['id'])
-                    return project['id']
-            print('PROJECT NOT FOUND')
+                if project["name"] == project_name:
+                    print("id del proyecto: ", project["id"])
+                    return project["id"]
+            print("PROJECT NOT FOUND")
             return None
         else:
-            print('FAILED PROJECTS OBTAINMENT')
+            print("FAILED PROJECTS OBTAINMENT")
             return None
     except:
         return None
@@ -621,10 +621,10 @@ def deleteProject(project_token,project_id):
         resp = delete_project(KEYSTONE_ENDPOINT, project_token, project_id)
         print(resp.status_code)
         if resp.status_code == 204:
-            print('PROJECT DELETED SUCCESSFULLY')
+            print("PROJECT DELETED SUCCESSFULLY")
             return True
         else:
-            print('FAILED TO DELETE PROJECT')
+            print("FAILED TO DELETE PROJECT")
             return None
     except:
         return None
@@ -644,7 +644,7 @@ def openstackDeleteSlice(project_name,slice_id):
                 if project_id:
                     asyncio.run(delete_slice_topology(project_token, project_id))
                     project_borrado = deleteProject(admin_token, project_id)
-                    time.sleep(2)
+                    time.sleep(1.5)
                     if project_borrado:
                         deleted = True
                     else:

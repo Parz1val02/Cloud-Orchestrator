@@ -212,13 +212,25 @@ def eliminar_slice(slice_id):
                 # implementa openstack .
                 slice_name_project_name = result.get("name")
                 #user_name = request.headers["X-User-Username"]
-                deleted = openstack_driver.openstackDeleteSlice(slice_name_project_name,slice_id)
+                deleted_openstack = openstack_driver.openstackDeleteSlice(slice_name_project_name,slice_id)
 
-                if deleted:
-                    return jsonify(
+                if deleted_openstack:
+
+                    result_delete = collection.delete_one({"_id": ObjectId(slice_id)})
+                    if result_delete.deleted_count == 1:
+                        print(f"Slice with slice id {slice_id} deleted successfully on OpenStack")
+                        return jsonify(
+                            {
+                                "msg": f"Slice with id {slice_id} deleted successfully in OpenStack",
+                                "result": "success",
+                            }
+                    )
+                    else:
+                        print(f"Slice with slice id {slice_id} not deleted correctly. still in database")
+                        return jsonify(
                         {
-                            "msg": f"Slice with id {slice_id} deleted successfully in OpenStack",
-                            "result": "success",
+                            "msg": f"Slice with id {slice_id} not deleted in database. error ocurred",
+                            "result": "error",
                         }
                     )
                 else:
