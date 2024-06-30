@@ -122,7 +122,7 @@ def create_project(auth_endpoint, token, domain_id, project_name, project_descri
     # status_code success = 201
     return r
 
-def list_projects(auth_endpoint, token, user_id):
+def list_projects_by_user_id(auth_endpoint, token, user_id):
     
     url = auth_endpoint + '/users/' + user_id + '/projects'
     headers = {'Content-type': 'application/json', 'X-Auth-Token': token}
@@ -130,6 +130,22 @@ def list_projects(auth_endpoint, token, user_id):
     r = requests.get(url=url, headers=headers)
     return r
 
+def list_projects_general(auth_endpoint, token):
+    
+    url = auth_endpoint + '/projects'
+    headers = {'Content-type': 'application/json', 'X-Auth-Token': token}
+
+    r = requests.get(url=url, headers=headers)
+    # status_code success = 200
+    return r
+
+def delete_project(auth_endpoint,token,project_id):
+    url = auth_endpoint + '/projects/' + project_id
+    headers = {'Content-type': 'application/json', 'X-Auth-Token': token}
+
+    r = requests.delete(url=url, headers=headers)
+    # status_code success = 204
+    return r
 
 
 def assign_role_to_user(auth_endpoint, token, project_id, user_id, role_id):

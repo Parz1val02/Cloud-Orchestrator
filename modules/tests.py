@@ -20,6 +20,8 @@ from openstack_sdk import (
     create_project,
     assign_role_to_user,
     get_users,
+    list_projects_general,
+    delete_project
 )
 import json
 
@@ -350,7 +352,8 @@ def create_slice_topology(topology_json, project_token, project_id):
             networks.append({"port": port})
         print("networks: ", networks)
         launch_instance(project_token, instance_name, image_id, flavor_id, networks)
-        time.sleep(3)
+        time.sleep(2)
+
 
 
 def find_link_by_source_port(port_id, links):
@@ -370,8 +373,8 @@ def find_link_by_target_port(port_id, links):
 # create_slice_topology()
 
 
-async def delete_instances_by_networkid(token, network_id):
-    instances_resp = list_instances(NOVA_ENDPOINT, token, PROJECT_ID)
+async def delete_instances_by_networkid(token, network_id, project_id):
+    instances_resp = list_instances(NOVA_ENDPOINT, token, project_id)
     network_original_info = get_network_by_id(NEUTRON_ENDPOINT, token, network_id)
     if instances_resp.status_code == 200:
         instances = instances_resp.json()["servers"]
@@ -450,19 +453,19 @@ def list_networks_slice(project_id, token):
 
 
 # Función principal para borrar la topología
-async def delete_slice_topology():
-    admin_token = authenticate_admin()
-    project_token = authenticate_project(admin_token)
+async def delete_slice_topology(project_token, project_id):
+    #admin_token = authenticate_admin()
+    #project_token = authenticate_project(admin_token)
     print(project_token)
 
-    networks = list_networks_slice(PROJECT_ID, project_token)
+    networks = list_networks_slice(project_id, project_token)
     # networks_id = []
     if networks:
         for network in networks:
             # networks_id.append(network['id'])
             network_id = network["id"]
             # Borrar instancias
-            await delete_instances_by_networkid(project_token, network_id)
+            await delete_instances_by_networkid(project_token, network_id, project_id)
 
             # Borrar puertos
             await delete_ports(project_token, network_id)
@@ -475,7 +478,7 @@ async def delete_slice_topology():
             time.sleep(0.25)
         print("Ring network deleted.")
     else:
-        print(f"Project with id {PROJECT_ID} do not have links")
+        print(f"Project with id {project_id} do not have links")
 
 
 # Llamar a la función principal para borrar la topología
@@ -554,15 +557,35 @@ def crear_proyecto(admin_token, domain_id, project_name, project_description):
             return None
     except:
         return None
-
+    
+def obtenerIdProyecto(project_token, project_name):
+    try:
+        resp = list_projects_general(KEYSTONE_ENDPOINT, project_token)
+        print(resp.status_code)
+        if resp.status_code == 200:
+            print('PROJECTS OBTAINED SUCCESSFULLY')
+            projects = resp.json()
+            print(json.dumps(projects))
+            for project in projects["projects"]:
+                if project['name'] == project_name:
+                    print("id del proyecto: ", project['id'])
+                    return project['id']
+            print('PROJECT NOT FOUND')
+            return None
+        else:
+            print('FAILED PROJECTS OBTAINMENT')
+            return None
+    except:
+        return None
 
 def openstackDeployment(slice_json, user_name):
     project_name = slice_json["name"]
     project_description = slice_json["description"]
     print(project_name)
     print(project_description)
-    admin_token = authenticate_admin()
+    
     try:
+        admin_token = authenticate_admin()
         if admin_token:
             # 2.- Crear el proyecto
             project = crear_proyecto(
@@ -588,3 +611,52 @@ def openstackDeployment(slice_json, user_name):
     except Exception as e:
         print(e)
         print("Slice deployment failed")
+        #return False
+    else:
+        #return True
+        pass
+
+def deleteProject(project_token,project_id):
+    try:
+        resp = delete_project(KEYSTONE_ENDPOINT, project_token, project_id)
+        print(resp.status_code)
+        if resp.status_code == 204:
+            print('PROJECT DELETED SUCCESSFULLY')
+            return True
+        else:
+            print('FAILED TO DELETE PROJECT')
+            return None
+    except:
+        return None
+
+
+
+def openstackDeleteSlice(slice_json, user_name):
+    project_name = slice_json["name"]
+    project_description = slice_json["description"]
+    print(project_name)
+    print(project_description)
+    deleted = False
+    try:
+        admin_token = authenticate_admin()
+        if admin_token:
+            project_token = authenticate_project(admin_token, project_name)
+            if project_token:
+                project_id = obtenerIdProyecto(project_token, project_name)
+                if project_id:
+                    asyncio.run(delete_slice_topology(project_token, project_id))
+                    project_borrado = deleteProject(admin_token, project_id)
+                    time.sleep(2)
+                    if project_borrado:
+                        deleted = True
+                    else:
+                        print("Slice elimination failed")
+                    
+    except Exception as e:
+        print(e)
+        print("Slice elimination failed")
+        #return deleted
+    else:
+        print(f"Project with id {project_id} deleted successfully")
+        print(f"Slice with id {slice_json["slice_id"]} deleted successfully")
+        #return deleted
