@@ -19,7 +19,6 @@ celery = Celery(
     backend=app.config["CELERY_RESULT_BACKEND"],
 )
 celery.conf.update(app.config)
-cw
 
 
 def serialize_document(doc):
