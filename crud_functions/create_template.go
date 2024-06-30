@@ -2,6 +2,7 @@ package crud_functions
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -1045,7 +1046,52 @@ type AvailabilityZone struct {
 	return availabilityZones[choice-1].ID
 }*/
 
-func CreateTemplate() {
+func sendTemplate(templateJSON []byte, token string) {
+
+	serverPort := 4444
+	requestURL := fmt.Sprintf("http://localhost:%d/templateservice/templates", serverPort)
+
+	req, err := http.NewRequest("POST", requestURL, bytes.NewBuffer(templateJSON))
+	if err != nil {
+		fmt.Println("Error creating request:", err)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-API-Key", token)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error at creating template: ", err)
+		os.Exit(1)
+	}
+
+	defer resp.Body.Close()
+
+	// Estructura para deserializar la respuesta
+	type ResponseCreateTemplate struct {
+		Result string `json:"result"`
+		Msg    string `json:"msg"`
+	}
+
+	// Leer la respuesta
+	var result ResponseCreateTemplate
+
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		fmt.Printf("Error decoding response body create template http: %v", err)
+		os.Exit(1)
+	}
+	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("Unexpected status code: %d, Error: %s\n", resp.StatusCode, result.Msg)
+		os.Exit(1)
+	}
+	// Mostrar la respuesta
+	fmt.Println("Respuesta:", result)
+
+}
+
+func CreateTemplate(user_id string, token string) {
 
 	initConfig()
 
@@ -1075,7 +1121,7 @@ func CreateTemplate() {
 		Name:         name,
 		Topology:     topology,
 		TopologyType: topologyType,
-		UserID:       "6640550a53c1187a6899a5a9",
+		UserID:       user_id,
 	}
 
 	templateJSON, _ := json.MarshalIndent(template, "", "  ")
@@ -1083,6 +1129,8 @@ func CreateTemplate() {
 	printTopologyTable(topology)
 
 	graphTemplateTopology(template)
+
+	sendTemplate(templateJSON, token)
 	/*
 		// Graficar la topología y guardarla como un archivo HTML
 		if err := graphTemplate(topology.Nodes, topology.Links); err != nil {
@@ -1090,5 +1138,4 @@ func CreateTemplate() {
 			return
 		}*/
 
-	// Implement HTTP request to send JSON to the server as needed
 }

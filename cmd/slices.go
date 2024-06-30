@@ -283,6 +283,7 @@ func listSlices() {
 	if err != nil {
 		fmt.Println(err)
 	}
+flag:
 	for {
 		if sliceId != "" {
 			p := tea.NewProgram(sliceModelCRUD2())
@@ -294,7 +295,7 @@ func listSlices() {
 			if m, ok := m.(simplelist.Model); ok && m.Choices[m.Cursor] != "" {
 				if m.Quit {
 					fmt.Printf("\n---\nQuitting!\n")
-					break
+					break flag
 				} else {
 					fmt.Printf("\n---\nYou chose %s!\n", m.Choices[m.Cursor])
 					switch m.Cursor {
@@ -313,7 +314,7 @@ func listSlices() {
 								fmt.Println("Error:", err)
 								//os.Exit(1)
 							}*/
-							break
+							break flag
 						}
 					default:
 
@@ -321,7 +322,7 @@ func listSlices() {
 				}
 			}
 		} else {
-			break
+			break flag
 		}
 	}
 }

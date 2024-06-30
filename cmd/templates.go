@@ -37,6 +37,7 @@ func listTemplates() {
 	if err != nil {
 		fmt.Println(err)
 	}
+flag:
 	for {
 		if templateId != "" {
 			p := tea.NewProgram(initialModelCRUD2())
@@ -48,7 +49,7 @@ func listTemplates() {
 			if m, ok := m.(simplelist.Model); ok && m.Choices[m.Cursor] != "" {
 				if m.Quit {
 					fmt.Printf("\n---\nQuitting!\n")
-					break
+					break flag
 				} else {
 					fmt.Printf("\n---\nYou chose %s!\n", m.Choices[m.Cursor])
 					switch m.Cursor {
@@ -67,7 +68,7 @@ func listTemplates() {
 								fmt.Println("Error:", err)
 								os.Exit(1)
 							}
-							break
+							break flag
 						}
 					case 4:
 						error := crud.ExportTemplate(templateId, token)
@@ -81,7 +82,7 @@ func listTemplates() {
 				}
 			}
 		} else {
-			break
+			break flag
 		}
 	}
 }
@@ -113,7 +114,9 @@ var templatesCmd = &cobra.Command{
 						fmt.Print("\n---\nSelect a template to execute CRUD operation on\n")
 						listTemplates()
 					case 1:
-						crud.CreateTemplate()
+						userId := viper.GetString("id")
+						token := viper.GetString("token")
+						crud.CreateTemplate(userId, token)
 					case 2:
 						token := viper.GetString("token")
 						userId := viper.GetString("id")
