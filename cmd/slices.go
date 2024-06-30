@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jedib0t/go-pretty/v6/table"
+
 	simplelist "github.com/Parz1val02/cloud-cli/simplelist"
 	simpletable "github.com/Parz1val02/cloud-cli/simpletable"
 	tabs "github.com/Parz1val02/cloud-cli/tabs"
@@ -229,7 +231,7 @@ func createSlice() {
 
 func sliceModelCRUD2() simplelist.Model {
 	return simplelist.Model{
-		Choices:  []string{"List slice configuration", "Edit slice", "Delete slice", "Graph slice"},
+		Choices:  []string{"List slice configuration", "Edit slice", "Delete slice", "Graph slice", "List VNCs console links"},
 		Selected: make(map[int]struct{}),
 	}
 }
@@ -277,6 +279,71 @@ func deleteSlice(slice_id string, token string) {
 
 }
 
+func obtainVNCs(slice_id string, token string) {
+	serverPort := 4444
+	requestURL := fmt.Sprintf("http://localhost:%d/sliceservice/slices/vnc/%s", serverPort, slice_id)
+
+	req, err := http.NewRequest("GET", requestURL, nil)
+	if err != nil {
+		fmt.Println("Error creating request:", err)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-API-Key", token)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error at obtaining vncs: ", err)
+		os.Exit(1)
+	}
+
+	defer resp.Body.Close()
+
+	// Estructura para deserializar la respuesta
+	type VNCResponse struct {
+		Result string            `json:"result"`
+		VNC    map[string]string `json:"vnc"`
+	}
+
+	// Leer la respuesta
+	var result VNCResponse
+
+	type BadVNCResponse struct {
+		Result string `json:"result"`
+		Msg    string `json:"msg"`
+	}
+
+	var badresult BadVNCResponse
+	if resp.StatusCode != http.StatusOK {
+		err = json.NewDecoder(resp.Body).Decode(&badresult)
+		if err != nil {
+			fmt.Printf("Error decoding response body: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Unexpected status code: %d, Error: %s\n", resp.StatusCode, badresult.Msg)
+		os.Exit(1)
+	}
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		fmt.Printf("Error decoding response body: %v", err)
+		os.Exit(1)
+	}
+
+	if result.Result == "success" && len(result.VNC) != 0 {
+		nodes := table.NewWriter()
+		nodes.AppendHeader(table.Row{"Node name", "VNC url console"})
+		for nodeName, vncURL := range result.VNC {
+			nodes.AppendRow(table.Row{nodeName, vncURL})
+		}
+
+		nodes.SetOutputMirror(os.Stdout)
+		nodes.Render()
+
+	}
+
+}
+
 func listSlices() {
 	token := viper.GetString("token")
 	sliceId, err := simpletable.SliceTable(token)
@@ -316,6 +383,9 @@ flag:
 							}*/
 							break flag
 						}
+					case 4:
+						obtainVNCs(sliceId, token)
+
 					default:
 
 					}
