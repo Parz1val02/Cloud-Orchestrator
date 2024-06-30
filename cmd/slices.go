@@ -234,6 +234,49 @@ func sliceModelCRUD2() simplelist.Model {
 	}
 }
 
+func deleteSlice(slice_id string, token string) {
+	serverPort := 4444
+	requestURL := fmt.Sprintf("http://localhost:%d/sliceservice/slices/%s", serverPort, slice_id)
+
+	req, err := http.NewRequest("DELETE", requestURL, nil)
+	if err != nil {
+		fmt.Println("Error creating request:", err)
+		return
+	}
+	req.Header.Set("X-API-Key", token)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error at deleting slice: ", err)
+		os.Exit(1)
+	}
+
+	defer resp.Body.Close()
+
+	// Estructura para deserializar la respuesta
+	type ResponseDeleteSlice struct {
+		Result string `json:"result"`
+		Msg    string `json:"msg"`
+	}
+
+	// Leer la respuesta
+	var result ResponseDeleteSlice
+
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		fmt.Printf("Error decoding response body delete slice http: %v", err)
+		//os.Exit(1)
+	}
+	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("Unexpected status code: %d, Error: %s\n", resp.StatusCode, result.Msg)
+		//os.Exit(1)
+	}
+	// Mostrar la respuesta
+	fmt.Println("Respuesta:", result)
+
+}
+
 func listSlices() {
 	token := viper.GetString("token")
 	sliceId, err := simpletable.SliceTable(token)
@@ -261,17 +304,17 @@ func listSlices() {
 						//crud.EditSlice(sliceId, token)
 
 					case 2:
-						/*var option string
+						var option string
 						fmt.Printf(">Are you sure you want to delete slice with id %s? (y/N): ", sliceId)
 						fmt.Scanf("%s\n", &option)
 						if option != "" && option == "y" || option == "Y" {
-							error := crud.DeleteSlice(sliceId, token)
-							if error != nil {
+							deleteSlice(sliceId, token)
+							/*if error != nil {
 								fmt.Println("Error:", err)
-								os.Exit(1)
-							}
+								//os.Exit(1)
+							}*/
 							break
-						}*/
+						}
 					default:
 
 					}
