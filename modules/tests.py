@@ -119,7 +119,7 @@ def create_instance_port(token, network_id, port_name, project_id):
 # Función para crear una instancia (VM)
 def launch_instance(token, instance_name, image_name, flavor_name, networks):
     resp = create_instance(
-        NOVA_ENDPOINT, token, instance_name, flavor_name, image_name, networks
+        NOVA_ENDPOINT, token, instance_name, flavor_name, IMAGE_ID, networks
     )
     if resp.status_code == 202:
         instance_data = resp.json()
@@ -164,6 +164,7 @@ def create_slice_topology(topology_json, project_token, project_id):
             "puerto0": puerto0_id,
             "puerto1": puerto1_id,
         }
+    print("links temp: ",links_temp)
 
     nodes = topology_json["nodes"]
 
@@ -173,9 +174,10 @@ def create_slice_topology(topology_json, project_token, project_id):
         image_id = node["image"]
         networks = []
         for port in node["ports"]:
-            link = find_link_by_source_port(port["id"], links)
+            port_id = port["node_id"]    #antes "id"
+            link = find_link_by_source_port(port_id, links)  
             if link is None:
-                link = find_link_by_target_port(port["id"], links)
+                link = find_link_by_target_port(port_id, links)
                 port = links_temp[link["link_id"]]["puerto1"]
             else:
                 port = links_temp[link["link_id"]]["puerto0"]
