@@ -1,3 +1,4 @@
+import logging
 import json
 from datetime import datetime
 import paramiko
@@ -6,8 +7,8 @@ import random
 import copy
 from pymongo import MongoClient
 from celery import shared_task
-from celery.utils.log import get_task_logger
 from bson.objectid import ObjectId
+from logging_handler import MongoDBHandler
 
 # import math
 # import ipaddress
@@ -26,7 +27,6 @@ headnode_ovs_name = "br-vlan"
 headnode_interfaces = "ens5"  # Coloca las interfaces del HeadNode aquí
 worker_ovs_name = "br-vlan"
 worker_interfaces = "ens4"  # Coloca las interfaces de los Workers aquí
-logger = get_task_logger(__name__)
 
 
 # ejecución de scripts en el HeadNode local
@@ -82,9 +82,18 @@ def execute_on_worker(worker_address, script, username, password):
 
 @shared_task(bind=True)
 def create(self, slice_id):
+    task_logger = logging.getLogger(f"task_{self.request.id}")
+    handler = MongoDBHandler(
+        db_name="cloud", collection_name="logs", task_id=self.request.id
+    )
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    handler.setFormatter(formatter)
+    task_logger.addHandler(handler)
+    task_logger.setLevel(logging.INFO)
     try:
-        logger.info(f"Starting deployment of VM slice {slice_id} on Linux Cluster")
-
+        task_logger.info(f"Starting deployment of VM slice {slice_id} on Linux Cluster")
         slice = collection.find_one({"_id": ObjectId(slice_id)})
         if slice:
             list_of_nodes = []
@@ -109,14 +118,14 @@ def create(self, slice_id):
                 vm_parameters.append([vm_name, bridge, vlan_id, port])
 
             # Ejecución de los scripts en el HeadNode
-            print(
+            task_logger.info(
                 f"bash init_orchestrator/init_headnode.sh {headnode_ovs_name} {headnode_interfaces}"
             )
             execute_on_headnode(
                 f"bash init_orchestrator/init_headnode.sh {headnode_ovs_name} {headnode_interfaces}"
             )
             for vlan_param in vlan_parameters:
-                print(
+                task_logger.info(
                     f"bash init_orchestrator/internal_net_headnode.sh {' '.join(vlan_param)}"
                 )
                 execute_on_headnode(
@@ -125,7 +134,7 @@ def create(self, slice_id):
 
             # Ejecución de los scripts en los Workers
             for worker_address in worker_addresses:
-                print(
+                task_logger.info(
                     f"sudo -S bash init_worker.sh {worker_ovs_name} {worker_interfaces}"
                 )
                 execute_on_worker(
@@ -138,9 +147,11 @@ def create(self, slice_id):
             assignments = assign_nodes_to_workers(len(nodes), worker_addresses)
 
             for worker, assigned_nodes in assignments.items():
-                print(f"{worker} is assigned nodes: {', '.join(assigned_nodes)}")
+                task_logger.info(
+                    f"{worker} is assigned nodes: {', '.join(assigned_nodes)}"
+                )
                 for i in assigned_nodes:
-                    print(
+                    task_logger.info(
                         f"sudo -S bash vm_script.sh {' '.join(vm_parameters[int(i)-1])}"
                     )
                     execute_on_worker(
@@ -151,7 +162,7 @@ def create(self, slice_id):
                     )
 
             for worker_address in worker_addresses:
-                print(f"sudo -S bash obtain_worker.sh {vlan_id}")
+                task_logger.info(f"sudo -S bash obtain_worker.sh {vlan_id}")
                 output = execute_on_worker(
                     worker_address,
                     f"sudo -S bash obtain_worker.sh {vlan_id}",
@@ -162,7 +173,7 @@ def create(self, slice_id):
                 print(lines)
                 if lines:
                     last_line = lines[-1]
-                    print(last_line)
+                    task_logger.info(last_line)
                     parts = last_line.split()  # Split the last line by whitespace
 
                     if len(parts) == 4:
@@ -209,43 +220,30 @@ def create(self, slice_id):
                 {"_id": ObjectId(slice_id)}, {"$set": updated_slice_data}
             )
             if result.modified_count == 1:
-                print(f"Slice with slice id {slice_id} updated successfully")
+                task_logger.info(f"Slice with slice id {slice_id} updated successfully")
+                print("Orquestador de cómputo inicializado exitosamente.")
+                result = {
+                    "message": f"Slice with slice id {slice_id} deployed successfully in Linux Cluster"
+                }
             else:
-                print(f"Slice with slice id {slice_id} not updated due to error")
-            print("Orquestador de cómputo inicializado exitosamente.")
-            logger.info(f"Step 1: Creating VM slice {slice_id} on Linux Cluster")
-
-            logger.info(f"Step 2: Configuring VM slice {slice_id} on Linux Cluster")
-
-            deployment_result = (
-                f"VM slice {slice_id} deployed successfully on Linux Cluster"
-            )
-            logger.info(deployment_result)
-
-            # Log to MongoDB
-            log_entry = {
-                "task_id": self.request.id,
-                "timestamp": datetime.now(),
-                "message": deployment_result,
-                "status": "success",
-            }
-            collection2.insert_one(log_entry)
+                task_logger.info(
+                    f"Slice with slice id {slice_id} not updated due to error"
+                )
+                result = {
+                    "message": f"Slice with slice id {slice_id} not deployed successfully in Linux Cluster"
+                }
+            handler.flush()
+            return result
         else:
             print(f"Slice with slice id {slice_id} not found")
     except Exception as e:
         error_msg = f"Error deploying VM slice {slice_id} on Linux Cluster: {str(e)}"
-        logger.error(error_msg)
+        task_logger.error(error_msg)
 
-        # Log error to MongoDB
-        log_entry = {
-            "task_id": self.request.id,
-            "timestamp": datetime.now(),
-            "message": error_msg,
-            "status": "error",
-        }
-        collection2.insert_one(log_entry)
-
+        handler.flush()
         raise e
+    finally:
+        handler.close()
 
 
 @shared_task

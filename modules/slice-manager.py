@@ -4,7 +4,6 @@ from pymongo import MongoClient
 from bson.objectid import ObjectId
 
 # import tests as openstack_driver
-import linux_cluster as linux
 from celery import Celery, current_app
 
 app = Flask(__name__)
