@@ -192,7 +192,7 @@ def create(self, slice_id):
             #        print(f"implement_orchestrator/vlan_internet.sh {vlan_id}")
             #        execute_on_headnode(f"implement_orchestrator/vlan_internet.sh {vlan_id}")
 
-            slice_id_value = slice.pop("slice_id", None)
+            slice.pop("_id", None)
 
             updated_slice_data = copy.deepcopy(slice)
 
@@ -206,12 +206,12 @@ def create(self, slice_id):
             updated_slice_data["vlan_id"] = vlan_id
             print(json.dumps(updated_slice_data, indent=2))
             result = collection.update_one(
-                {"_id": ObjectId(slice_id_value)}, {"$set": updated_slice_data}
+                {"_id": ObjectId(slice_id)}, {"$set": updated_slice_data}
             )
             if result.modified_count == 1:
-                print(f"Slice with slice id {slice_id_value} updated successfully")
+                print(f"Slice with slice id {slice_id} updated successfully")
             else:
-                print(f"Slice with slice id {slice_id_value} not updated due to error")
+                print(f"Slice with slice id {slice_id} not updated due to error")
             print("Orquestador de cómputo inicializado exitosamente.")
             logger.info(f"Step 1: Creating VM slice {slice_id} on Linux Cluster")
 
