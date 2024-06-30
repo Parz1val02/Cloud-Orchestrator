@@ -107,8 +107,9 @@ def create_instance_port(token, network_id, port_name, project_id):
     port_resp = create_port(NEUTRON_ENDPOINT, token, port_name, network_id, project_id)
     if port_resp.status_code == 201:
         port_data = port_resp.json()
+        port_id = port_data["port"]["id"]
         print(
-            f"Port {port_name} created successfully with ID {port_data["port"]["id"]}"
+            f"Port {port_name} created successfully with ID {port_id}"
         )
         return port_data["port"]["id"]
     else:
@@ -122,182 +123,12 @@ def launch_instance(token, instance_name, image_name, flavor_name, networks):
     )
     if resp.status_code == 202:
         instance_data = resp.json()
+        instance_id = instance_data["server"]["id"]
         print(
-            f"Instance {instance_name} created successfully with ID {instance_data["server"]["id"]}"
+            f"Instance {instance_name} created successfully with ID {instance_id}"
         )
     else:
         raise Exception(f"Failed to launch instance {instance_name}")
-
-
-"""
-topology_json = {
-    "name": "arbol_binario",
-    "topology": {
-        "links": [
-            {
-                "link_id": "nd1_nd2",
-                "source": "nd1",
-                "target": "nd2",
-                "source_port": "nd1_port0",
-                "target_port": "nd2_port0"
-            },
-            {
-                "link_id": "nd1_nd3",
-                "source": "nd1",
-                "target": "nd3",
-                "source_port": "nd1_port1",
-                "target_port": "nd3_port0"
-            },
-            {
-                "link_id": "nd2_nd4",
-                "source": "nd2",
-                "target": "nd4",
-                "source_port": "nd2_port1",
-                "target_port": "nd4_port0"
-            },
-            {
-                "link_id": "nd2_nd5",
-                "source": "nd2",
-                "target": "nd5",
-                "source_port": "nd2_port2",
-                "target_port": "nd5_port0"
-            },
-            {
-                "link_id": "nd3_nd6",
-                "source": "nd3",
-                "target": "nd6",
-                "source_port": "nd3_port1",
-                "target_port": "nd6_port0"
-            },
-            {
-                "link_id": "nd3_nd7",
-                "source": "nd3",
-                "target": "nd7",
-                "source_port": "nd3_port2",
-                "target_port": "nd7_port0"
-            }
-        ],
-        "nodes": [
-            {
-                "node_id": "nd1",
-                "name": "node_1",
-                "flavor": {
-                    "id": FLAVOR_ID,
-                    "name": "c4.2xlarge",
-                    "cpu": 4,
-                    "memory": 2,
-                    "storage": 8
-                },
-                "image": IMAGE_ID,
-                "security_rules": [22],
-                "ports": [
-                    { "id": "nd1_port0" },
-                    { "id": "nd1_port1" }
-                ]
-            },
-            {
-                "node_id": "nd2",
-                "name": "node_2",
-                "flavor": {
-                    "id": FLAVOR_ID,
-                    "name": "c4.2xlarge",
-                    "cpu": 4,
-                    "memory": 2,
-                    "storage": 8
-                },
-                "image": IMAGE_ID,
-                "security_rules": [22],
-                "ports": [
-                    { "id": "nd2_port0" },
-                    { "id": "nd2_port1" },
-                    { "id": "nd2_port2" }
-                ]
-            },
-            {
-                "node_id": "nd3",
-                "name": "node_3",
-                "flavor": {
-                    "id": FLAVOR_ID,
-                    "name": "c4.2xlarge",
-                    "cpu": 4,
-                    "memory": 2,
-                    "storage": 8
-                },
-                "image": IMAGE_ID,
-                "security_rules": [22],
-                "ports": [
-                    { "id": "nd3_port0" },
-                    { "id": "nd3_port1" },
-                    { "id": "nd3_port2" }
-                ]
-            },
-            {
-                "node_id": "nd4",
-                "name": "node_4",
-                "flavor": {
-                    "id": FLAVOR_ID,
-                    "name": "c4.2xlarge",
-                    "cpu": 4,
-                    "memory": 2,
-                    "storage": 8
-                },
-                "image": IMAGE_ID,
-                "security_rules": [22],
-                "ports": [
-                    { "id": "nd4_port0" }
-                ]
-            },
-            {
-                "node_id": "nd5",
-                "name": "node_5",
-                "flavor": {
-                    "id": FLAVOR_ID,
-                    "name": "c4.2xlarge",
-                    "cpu": 4,
-                    "memory": 2,
-                    "storage": 8
-                },
-                "image": IMAGE_ID,
-                "security_rules": [22],
-                "ports": [
-                    { "id": "nd5_port0" }
-                ]
-            },
-            {
-                "node_id": "nd6",
-                "name": "node_6",
-                "flavor": {
-                    "id": FLAVOR_ID,
-                    "name": "c4.2xlarge",
-                    "cpu": 4,
-                    "memory": 2,
-                    "storage": 8
-                },
-                "image": IMAGE_ID,
-                "security_rules": [22],
-                "ports": [
-                    { "id": "nd6_port0" }
-                ]
-            },
-            {
-                "node_id": "nd7",
-                "name": "node_7",
-                "flavor": {
-                    "id": FLAVOR_ID,
-                    "name": "c4.2xlarge",
-                    "cpu": 4,
-                    "memory": 2,
-                    "storage": 8
-                },
-                "image": IMAGE_ID,
-                "security_rules": [22],
-                "ports": [
-                    { "id": "nd7_port0" }
-                ]
-            }
-        ]
-    }
-}"""
 
 
 def create_slice_topology(topology_json, project_token, project_id):
@@ -389,13 +220,14 @@ async def delete_instances_by_networkid(token, network_id, project_id):
                 for network in instance_detail["addresses"]:
                     # print(network)
                     if network == network_original_info["name"]:
+                        instance_id = instance["id"]
                         delete_resp = delete_server(
-                            NOVA_ENDPOINT, token, instance["id"]
+                            NOVA_ENDPOINT, token, instance_id
                         )
-                        print(f"Deleted instance: {instance["id"]} for {network}")
+                        print(f"Deleted instance: {instance_id} for {network}")
                         if delete_resp.status_code != 204:
                             raise Exception(
-                                f"Failed to delete instance {instance["id"]}"
+                                f"Failed to delete instance {instance_id}"
                             )
     else:
         raise Exception("Failed to list instances")
@@ -407,11 +239,12 @@ async def delete_ports(token, network_id):
     if ports_resp.status_code == 200:
         ports = ports_resp.json()["ports"]
         for port in ports:
-            delete_resp = delete_port(NEUTRON_ENDPOINT, token, port["id"])
+            port_id = port["id"]
+            delete_resp = delete_port(NEUTRON_ENDPOINT, token, port_id)
             if delete_resp.status_code != 204:
-                raise Exception(f"Failed to delete port {port["id"]}")
+                raise Exception(f"Failed to delete port {port_id}")
             else:
-                # print("Deleted port: ",port["id"])
+                # print("Deleted port: ",port_id)
                 pass
     else:
         raise Exception("Failed to list ports")
@@ -423,9 +256,10 @@ async def delete_subnets(token, network_id):
     if subnets_resp.status_code == 200:
         subnets = subnets_resp.json()["subnets"]
         for subnet in subnets:
-            delete_resp = delete_subnet(NEUTRON_ENDPOINT, token, subnet["id"])
+            subnet_id = subnet["id"]
+            delete_resp = delete_subnet(NEUTRON_ENDPOINT, token, subnet_id)
             if delete_resp.status_code != 204:
-                raise Exception(f"Failed to delete subnet {subnet["id"]}")
+                raise Exception(f"Failed to delete subnet {subnet_id}")
             else:
                 # print("Deleted subnet: ",subnet["id"])
                 pass
