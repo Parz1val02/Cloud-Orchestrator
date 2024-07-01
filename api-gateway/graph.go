@@ -252,6 +252,7 @@ func graphHandler(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Template not found"})
 			return
 		}
+		fmt.Printf("Error finding template: %s\n", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
 		return
 	}
