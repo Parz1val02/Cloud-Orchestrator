@@ -119,8 +119,8 @@ def crear_plantilla():
     if result.inserted_id:
         return jsonify(
             {
-                "msg": f"Template with id {result.inserted_id} created successfully",
-                "id": result.inserted_id,
+                "msg": f"Template with id {str(result.inserted_id)} created successfully",
+                "id": str(result.inserted_id),
                 "result": "success",
             }
         )
