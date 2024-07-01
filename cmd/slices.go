@@ -249,7 +249,7 @@ func createSlice() {
 
 func sliceModelCRUD2() simplelist.Model {
 	return simplelist.Model{
-		Choices:  []string{"List slice configuration", "Edit slice", "Delete slice", "Graph slice", "List VNCs console links"},
+		Choices:  []string{"List slice configuration", "Delete slice", "List VNCs console links"},
 		Selected: make(map[int]struct{}),
 	}
 }
@@ -319,7 +319,7 @@ func deleteSlice(slice_id, token, deployment_type string) {
 
 func obtainVNCs(slice_id string, token string) {
 	serverPort := 4444
-	requestURL := fmt.Sprintf("http://localhost:%d/sliceservice/slices/vnc/%s", serverPort, slice_id)
+	requestURL := fmt.Sprintf("http://10.20.12.162:%d/sliceservice/slices/vnc/%s", serverPort, slice_id)
 
 	req, err := http.NewRequest("GET", requestURL, nil)
 	if err != nil {
@@ -379,7 +379,6 @@ func obtainVNCs(slice_id string, token string) {
 		nodes.Render()
 
 	}
-
 }
 
 func listSlices() {
@@ -407,9 +406,6 @@ flag:
 					case 0:
 						tabs.SliceInfoTabs(sliceId, token)
 					case 1:
-						// crud.EditSlice(sliceId, token)
-
-					case 2:
 						var option string
 						fmt.Printf(">Are you sure you want to delete slice with id %s? (y/N): ", sliceId)
 						fmt.Scanf("%s\n", &option)
@@ -421,9 +417,12 @@ flag:
 							}*/
 							break flag
 						}
-					case 4:
-						obtainVNCs(sliceId, token)
-
+					case 2:
+						if deploymentType == "openstack" {
+							obtainVNCs(sliceId, token)
+						} else {
+							fmt.Println("Option not available for Linux Cluster")
+						}
 					default:
 
 					}
