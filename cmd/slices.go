@@ -459,6 +459,7 @@ var slicesCmd = &cobra.Command{
 					fmt.Printf("\n---\nYou chose %s!\n", m.Choices[m.Cursor])
 					switch m.Cursor {
 					case 0:
+                        fmt.Println("\n---\nPick template to deploy slice:\n")
 						createSlice()
 					case 1:
 						fmt.Print("\n---\nSelect a slice to execute CRUD operation on\n")
