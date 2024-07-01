@@ -39,8 +39,8 @@ type Flavor struct {
 	FlavorID string  `bson:"id"`
 	Name     string  `bson:"name"`
 	CPU      int     `bson:"cpu"`
-	Memory   float32 `bson:"memory"`  // en GB
-	Storage  float32 `bson:"storage"` // en GB
+	Memory   float64 `bson:"memory"`  // en GB
+	Storage  float64 `bson:"storage"` // en GB
 }
 
 type Link struct {
