@@ -3,7 +3,7 @@ from celery.result import AsyncResult
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 import linux_cluster as linux
-
+import random
 import tests as openstack_driver
 from celery import Celery, current_app
 
@@ -62,6 +62,7 @@ def crear_slice():
     new_slice_info = request.json
     new_slice = obtenerTemplateById(new_slice_info["template_id"])
     new_slice.update(new_slice_info)
+    new_slice["name"] = new_slice["name"] + str(random.randint(100, 999))
 
     db = client.cloud
     collection = db.slices
@@ -194,6 +195,7 @@ def buscar_slice(slice_id):
         error_code = 400
         return response, error_code
 
+
 # Endpoint para buscar una plantilla por ID / working
 @app.route("/slices/vnc/<string:slice_id>", methods=["GET"])
 def vnc_slice(slice_id):
@@ -202,14 +204,17 @@ def vnc_slice(slice_id):
     try:
         slice = collection.find_one({"_id": ObjectId(slice_id)})
         if slice:
-           
-           project_name = slice.get("name")
-           vnc_urls = openstack_driver.obtainVNCfromProject(project_name)
-           if vnc_urls is None:
-                return jsonify({"result": "error", "msg": "Failed to obtain VNC links"}), 500
-           
-           response = jsonify({"result": "success", "vnc": vnc_urls})
-           return response
+
+            project_name = slice.get("name")
+            vnc_urls = openstack_driver.obtainVNCfromProject(project_name)
+            if vnc_urls is None:
+                return (
+                    jsonify({"result": "error", "msg": "Failed to obtain VNC links"}),
+                    500,
+                )
+
+            response = jsonify({"result": "success", "vnc": vnc_urls})
+            return response
         else:
             response = jsonify(
                 {
@@ -225,7 +230,6 @@ def vnc_slice(slice_id):
         return response, error_code
 
 
-
 # Endpoint para eliminar una slice por ID / working
 @app.route("/slices/<string:slice_id>", methods=["DELETE"])
 def eliminar_slice(slice_id):
@@ -233,7 +237,7 @@ def eliminar_slice(slice_id):
     collection = db.slices
     try:
         result = collection.find_one(
-            {"_id": ObjectId(slice_id)}, {"deployment_type": 1, "_id": 0, "name":1}
+            {"_id": ObjectId(slice_id)}, {"deployment_type": 1, "_id": 0, "name": 1}
         )
         if result:
             print(result)
@@ -242,28 +246,34 @@ def eliminar_slice(slice_id):
             if attribute_value == "openstack":
                 # implementa openstack .
                 slice_name_project_name = result.get("name")
-                #user_name = request.headers["X-User-Username"]
-                deleted_openstack = openstack_driver.openstackDeleteSlice(slice_name_project_name,slice_id)
+                # user_name = request.headers["X-User-Username"]
+                deleted_openstack = openstack_driver.openstackDeleteSlice(
+                    slice_name_project_name, slice_id
+                )
 
                 if deleted_openstack:
 
                     result_delete = collection.delete_one({"_id": ObjectId(slice_id)})
                     if result_delete.deleted_count == 1:
-                        print(f"Slice with slice id {slice_id} deleted successfully on OpenStack")
+                        print(
+                            f"Slice with slice id {slice_id} deleted successfully on OpenStack"
+                        )
                         return jsonify(
                             {
                                 "msg": f"Slice with id {slice_id} deleted successfully in OpenStack",
                                 "result": "success",
                             }
-                    )
+                        )
                     else:
-                        print(f"Slice with slice id {slice_id} not deleted correctly. still in database")
+                        print(
+                            f"Slice with slice id {slice_id} not deleted correctly. still in database"
+                        )
                         return jsonify(
-                        {
-                            "msg": f"Slice with id {slice_id} not deleted in database. error ocurred",
-                            "result": "error",
-                        }
-                    )
+                            {
+                                "msg": f"Slice with id {slice_id} not deleted in database. error ocurred",
+                                "result": "error",
+                            }
+                        )
                 else:
                     return jsonify(
                         {
@@ -297,7 +307,12 @@ def eliminar_slice(slice_id):
             return response, error_code
 
     except:
-        response = jsonify({"result": "error", "msg": f"Error ocurred during elimination slice id: {slice_id}"})
+        response = jsonify(
+            {
+                "result": "error",
+                "msg": f"Error ocurred during elimination slice id: {slice_id}",
+            }
+        )
         error_code = 400
         return response, error_code
 
