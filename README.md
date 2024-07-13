@@ -5,8 +5,11 @@
 ## Requisitos
 
 Tener mongodb desplegado en el puerto 27017
+
 Tener rabbitmq desplegado en el puerto 5673
+
 Tener openstack desplegado (horizon, nova, glance, neutron, placement, keystone)
+
 Tener ovs desplegado
 
 ### Headnode
@@ -16,6 +19,7 @@ Tener ovs desplegado
 Ejecutar los siguientes comandos con docker
 
 `docker build -t api-gateway .`
+
 `docker run --network=host -p 4444:4444 api-gateway`
 
 #### Backend
@@ -32,7 +36,9 @@ Instalar en un virtual environment con pip los siguientes modulos de python
 En la carpeta backend/ ejecutar
 
 `sudo python3 template-manager`
+
 `sudo python3 slice-manager`
+
 `sudo celery -A slice-manager.celery worker --loglevel=info`
 
 ### Local
